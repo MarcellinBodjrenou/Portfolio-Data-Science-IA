@@ -1,0 +1,1223 @@
+---
+title: "Conception d'un modèle prédictif basé sur l'intélligence artifficielle pour la prévision des pluies dans les stations de Kandi et Parakou au Bénin"
+author: ""
+format:
+    pdf:
+        toc: false
+        number-sections: true
+        keep-tex: true
+        fig-pos: H
+        df-print: kable
+        tbl-colwidths: auto
+        lof: true
+        lot: true
+execute: 
+  echo: false
+  warning: false
+  message: false
+---
+
+# Introduction générale
+
+La météorologie occupe une grande importance dans plusieurs domaines de
+la vie quotidienne notamment l'agriculture et les transports. Grâce aux
+stations météorologiques, une grande quantité de données telles que la température,
+l'humidité, la pression atmosphériques et le vent est collectée chaque
+jour. Cependant, l'analyse de ces données afin de prévoir les
+précipitations demeure une tâche complexe en raison des variations
+climatiques. Face à ces difficultés, les techniques d'intelligence
+artificielle et d'apprentissage automatique offrent aujourd'hui des
+solutions éfficaces pour améliorer la prédiction des pluies.
+
+Dans le cas de ce stage, notre projet consiste à analyser les données
+météorologiques des stations de Parakou et de Kandi, de 2015 à 2025, et
+à développer un modèle capable de prédire la pluie à partir
+des variables climatiques. Dans le cadre de ce projet, le langage Python, notamment les bibliothèques Pandas, NumPy, Seaborn, Matplotlib, Missingno et Scikit-Learn, sera utilisé au sein de l’extension Quarto afin de réaliser l’analyse des données et de développer un modèle prédictif.
+
+# Prétraitement des données et comparaison des méthodes d’imputation des valeurs manquantes
+
+## Introduction
+
+Dans le cadre de notre stage portant sur la conception d'un modèle prédictif basé sur l'intélligence artifficielle pour la prévision des pluies, une étape importante de prétraitement des données a été réalisée. Cette étape consiste à :
+
+- créer des jeux de données spécifiques à chaque station ;
+- analyser les valeurs manquantes ;
+- comparer plusieurs méthodes d’imputation ;
+- sélectionner la méthode la plus performante.
+
+## Aperçu général des tables de données 
+
+```{python}
+import pandas as pd
+import numpy as np
+
+import matplotlib.pyplot as plt
+import seaborn as sns
+
+import missingno as msn
+
+from IPython.display import display
+
+from sklearn.metrics import mean_absolute_error,mean_squared_error
+```
+```{python}
+data=pd.read_excel("Donnees_Stagiaire_Marcellin.xls")
+```
+```{python}
+#| label: tbl-aper_donne
+#| tbl-cap: "Apercu générale des données"
+display(data.drop(["24","25","26","27","28","29","30","31"],axis=1))
+```
+
+## Présentation des données
+
+Les colonnes présentent dans notre données sont : 
+
+```{python}
+display(data.columns)
+```
+
+On a les données de deux stations : celle de Kandi et de Parakou. De plus, on a reçu les données de la pression (en hPa), de la pluie par jour (en mm), de la température maximale et minimale (en °C), de l'humidité (en %) et de la vitesse du vent (en m/s). Les données fournies constituent un dataframe dans lequel chaque ligne représente une information précise (pression ou température ou humidité ou etc.) des 31 jours d’un mois pour une année donnée.
+
+## Création des jeux de données pour le projet
+
+Pour la réalisation de notre projet, les données reçues ne sont pas encore au format pour passer à gestion des valeurs manquantes, sinon il y aura de fuite de données. Pour cela, nous allons d'abord créer notre propre jeu de données.
+
+### Création des variables année, mois et jour de Kandi et de Parakou
+
+```{python}
+temps=pd.date_range(start='2015-01-01',end='2025-12-31',freq='D')
+
+data_Kandi=pd.DataFrame({"Lieu":"KANDI_AEROPORT","annee":temps.year,
+                        "mois":temps.month,"jour":temps.day})
+
+data_parakou=pd.DataFrame({"Lieu":"PARAKOU_AEROPORT","annee":temps.year,
+                        "mois":temps.month,"jour":temps.day})
+```
+
+Après la créations des variables année, mois et jour, voilà un ce que ressemble notre jeu de données : 
+
+**Station de Kandi**
+```{python}
+display(data_Kandi)
+```
+
+**Station de Parakou**
+```{python}
+display(data_parakou)
+```
+
+### Création des variables Pression, température, vitesse de vent, humidité et pluiviométrie
+
+Après la créations des variables Pression, température, vitesse de vent, humidité et pluiviométrie, voilà un ce que ressemble notre jeu de données : 
+
+```{python}
+data=data.rename(columns={"01":"1","02":"2","03":"3","04":"4","05":"5",
+                "06":"6","07":"7","08":"8","09":"9"})
+def verif(data_verif):
+    if 0<len(data_verif):
+        return data_verif.iloc[0]
+    else:
+        return np.nan
+def verif_temp(data_verif_temp):
+    if 2<=len(data_verif_temp):
+        return [data_verif_temp.iloc[0],data_verif_temp.iloc[1]]
+    elif len(data_verif_temp)==1:
+        return [data_verif_temp.iloc[0],data_verif_temp.iloc[0]]
+    else:
+        return[np.nan,np.nan]
+    
+def creation(data_ge,lieu):
+    list_pression=[]
+    list_pluvimetrie=[]
+    list_temperature_max=[]
+    list_temperature_min=[]
+    list_humidite=[]
+    list_vitesse_vent=[]
+
+    data_gene=data_ge.copy()
+    for i in range(len(data_gene)):
+        Annee=data_gene.iloc[i]["annee"]
+        Mois=data_gene.iloc[i]["mois"]
+        Jour=data_gene.iloc[i]["jour"]
+    
+        data_virt=data[(data.Name==lieu) & (data.Year==Annee) & (data.Month==Mois)]
+
+        list_pression.append(verif(data_virt[data_virt.Description=="hPa"][f"{Jour}"]))
+
+        list_temperature_max.append(
+            verif_temp(data_virt[data_virt.Description=='°C'][f"{Jour}"])[0])
+
+        list_temperature_min.append(
+            verif_temp(data_virt[data_virt.Description=='°C'][f"{Jour}"])[1])
+                                
+        list_humidite.append(
+            verif(data_virt[data_virt.Description=='%'][f"{Jour}"]))
+
+        list_vitesse_vent.append(
+            verif(data_virt[data_virt.Description=='m/s'][f"{Jour}"]))
+
+        list_pluvimetrie.append(
+            verif(data_virt[data_virt.Description=="mm"][f"{Jour}"]))
+
+    data_gene["Pression"]=list_pression
+
+    data_gene["Temperature_Max"]=list_temperature_max
+
+    data_gene["Temperature_Min"]=list_temperature_min
+
+    data_gene["Humidite"]=list_humidite
+
+    data_gene["Vitesse_Vent"]=list_vitesse_vent
+
+    data_gene["Pluviometrie"]=list_pluvimetrie
+
+    return data_gene
+
+Kandi=creation(data_Kandi,"KANDI_AEROPORT")
+
+Parakou=creation(data_parakou,"PARAKOU_AEROPORT")
+```
+
+**Station de Kandi**
+```{python}
+#| label: tbl-apercu_nouv_kandi
+#| tbl-cap: "Apercu de la nouvelle données de jeu de Kandi"
+display(Kandi)
+```
+
+**Station de Parakou**
+```{python}
+#| label: tbl-apercu_nouv_parakou
+#| tbl-cap: "Apercu de la nouvelle données de jeu de Parakou"
+display(Parakou)
+```
+
+Notre nouveau jeux de données contient sur une ligne la pression, la température minimale, la température maximale, l'humidité, la vitesse du vent et la quantité de pluie d'un jour précis.
+
+### Dimensions du nouveau jeu de données
+
+```{python}
+print("Dimension Kandi :", Kandi.shape)
+
+print("Dimension Parakou :", Parakou.shape)
+```
+
+On a pour chaque station, 4018 observation ce qui correspond exactemeny au nombre de jour entre 2015 à 2025. 
+
+```{python}
+Kandi.to_csv("data/Kandi.csv",index=False)
+
+Parakou.to_csv("data/Parakou.csv",index=False)
+```
+
+## Prétraitement des données 
+
+### Pourcentage de valeurs manquantes dans les jeux de données
+
+**Station Kandi**
+```{python}
+Kandi.isnull().sum()[0<Kandi.isnull().sum()]*100/len(Kandi)
+```
+
+**Station Parakou**
+
+```{python}
+Parakou.isnull().sum()[0<Parakou.isnull().sum()]*100/len(Parakou)
+```
+
+On constate que la pression est la variable qui contient plus de valeurs manquantes dans les deux stations (1.64 % à Kandi et 1.79 % à Parakou).
+
+### Visualisation des valeurs manquantes
+
+Pour mieux et vite comprendre la relation entre les variables pour les valeurs manquantes, nous allons les visualiser à l'aide des graphes suivant : 
+
+```{python}
+#| label: fig-VVMK
+#| fig-cap: "Visualisation des valeurs manquantes à Kandi et Parakou"
+#| out-width: 80%
+fig, ax = plt.subplots(1,2,figsize=(6,4))
+msn.matrix(Kandi.drop(["annee","mois","jour"],axis=1).select_dtypes(include="number"),ax=ax[0])
+plt.setp(
+    ax[0].get_xticklabels(),
+    fontsize=4,
+    rotation=45,
+    ha='right'
+)
+ax[0].set_title("Kandi")
+msn.matrix(Parakou.drop(["annee","mois","jour"],axis=1).select_dtypes(include="number"),ax=ax[1])
+plt.setp(
+    ax[1].get_xticklabels(),
+    fontsize=4,
+    rotation=45,
+    ha='right'
+)
+ax[1].set_title("Parakou")
+plt.tight_layout()
+plt.show();
+```
+
+### Suppression des lignes très incomplètes
+
+```{python}
+#| label: tbl-LICP
+#| tbl-cap: "les lignes très incomplets à Parakou"
+display(Parakou[(Parakou.Pression.isnull()) & (Parakou.Humidite.isnull()) & 
+        (Parakou.Temperature_Max.isnull()) & (Parakou.Temperature_Min.isnull())
+        &(Parakou.Vitesse_Vent.isnull())].round(2))
+```
+
+```{python}
+#| label: tbl-LICK
+#| tbl-cap: "les lignes très incomplets à Kandi"
+display(Kandi[Kandi.Pluviometrie.isnull()].round(2))
+```
+
+
+Certaines observations de Parakou présentent un taux très élevé de valeurs manquantes. Ces lignes ont été supprimées afin de garantir la qualité des données et de limiter l’introduction d’erreurs dans notre jeu de données.
+
+Par ailleurs, une observation de Kandi contenant uniquement une valeur manquante pour la pluviométrie a également été supprimée compte tenu de son caractère isolé et de son impact négligeable sur l’ensemble des données.
+
+```{python}
+Parakou=Parakou.dropna(thresh=6)
+Kandi=Kandi.drop([Kandi[Kandi.Pluviometrie.isnull()].index[0]],axis=0)
+```
+
+### Présentation des méthodes d’imputation
+
+Plusieurs méthodes d’imputation ont été étudiées :
+
+- moyenne historique ;
+- médiane historique ;
+- interpolation linéaire ;
+- moyenne globale ;
+- médiane globale.
+
+
+**\underline{\textit{Moyenne historique et médiane historique}}**
+
+Ces deux méthodes consistent à remplacer une valeur manquante respectivement par la moyenne et la médiane des valeurs observées des années précédentes, pour le même jour et le même mois.
+
+
+**\underline{\textit{Interpolation linéaire}}**
+
+Cette méthode consiste à remplacer une valeur manquante en utilisant la valeur précédente et la valeur suivante. Par exemple, en observant la pression du jour précédent et celle du jour suivant, il est possible d’estimer la pression du jour concerné.
+
+
+**\underline{\textit{Moyenne globale et médiane globale}}**
+
+Ces méthodes consistent à remplacer une valeur manquante respectivement par la moyenne et la médiane générales. 
+
+```{python}
+#| echo: false
+# Méthode de moyenne historique
+def methode_impute_moy(data_inpute, liste_variable_marquante):
+
+    donnee = data_inpute.copy()
+
+    for variable in liste_variable_marquante:
+
+        donnee_marquante = donnee[donnee[variable].isnull()]
+
+        for i in donnee_marquante.index:
+
+            annee = donnee.loc[i, "annee"]
+            mois = donnee.loc[i, "mois"]
+            jour = donnee.loc[i, "jour"]
+
+            donnee_utilise = donnee[
+                (donnee["annee"] < annee) &
+                (donnee["mois"] == mois) &
+                (donnee["jour"] == jour)
+            ]
+
+            valeur = donnee_utilise[variable].mean()
+
+            if not pd.isna(valeur):
+
+                donnee.loc[i, variable] = valeur
+
+            else:
+
+                donnee.loc[i, variable] =donnee[variable].median()
+                
+    return donnee
+```
+
+
+```{python}
+#| echo: false
+#Méthode de médiane historique
+def methode_impute_medi(data_inpute, liste_variable_marquante):
+
+    donnee = data_inpute.copy()
+
+    for variable in liste_variable_marquante:
+
+        donnee_marquante = donnee[donnee[variable].isnull()]
+
+        for i in donnee_marquante.index:
+
+            annee = donnee.loc[i, "annee"]
+            mois = donnee.loc[i, "mois"]
+            jour = donnee.loc[i, "jour"]
+
+            donnee_utilise = donnee[
+                (donnee["annee"] < annee) &
+                (donnee["mois"] == mois) &
+                (donnee["jour"] == jour)
+            ]
+
+            valeur = donnee_utilise[variable].median()
+
+            if not pd.isna(valeur):
+
+                donnee.loc[i, variable] = valeur
+
+            else:
+
+                donnee.loc[i, variable] = donnee[variable].median()
+
+    return donnee
+
+```
+
+
+
+```{python}
+#| echo: false
+#| # Méthode de moyenne globale
+def methode_moy_glob(data_inpute, liste_variable_marquante):
+
+    donnee = data_inpute.copy()
+
+    for variable in liste_variable_marquante:
+
+        donnee[variable] = donnee[variable].fillna(
+            donnee[variable].mean()
+        )
+
+    return donnee
+
+```
+
+
+
+
+```{python}
+#| echo: false
+# Méthode de médiane globale
+def methode_med_glob(data_inpute, liste_variable_marquante):
+
+    donnee = data_inpute.copy()
+
+    for variable in liste_variable_marquante:
+
+        donnee[variable] = donnee[variable].fillna(
+            donnee[variable].median()
+        )
+
+    return donnee
+```
+
+
+```{python}
+#| echo: false
+# Méthode d'interpolation linéaire
+
+def methode_interpo(data_inpute, liste_variable_marquante):
+
+    donnee = data_inpute.copy()
+
+    for variable in liste_variable_marquante:
+
+        donnee[variable] = (
+            donnee[variable]
+            .interpolate(
+                method="linear",
+                limit_direction="both"
+            )
+        )
+
+    return donnee
+
+```
+
+### Protocole expérimental
+
+Pour comparer les différentes méthodes d’imputation, certaines valeurs connues ont été supprimées artificiellement dans les données. Les valeurs supprimées ont ensuite été reconstruites par chaque méthode d’imputation. Les performances ont été évaluées à l’aide des métriques :
+
+- $MAE=\frac{1}{n}\sum_{i=1}^{n}|x_{i,pred}-x_{i,vrai}|$
+- $RMSE=\sqrt{\frac{1}{n}\sum_{i=1}^{n}(x_{i,pred}-x_{i,vrai})^2}$.
+
+### Résultats des méthodes d'imputations
+
+Voilà le score MAE et RMSE de chacun variables qui contient des valeurs manquantes dans les deux stations, pour chaque méthode d’imputation.
+
+```{python}
+#| echo: false
+# Fonction de comparaison
+def calcul_erreur(data_prepar, liste_variable_marquan):
+
+    # reproductibilité
+    np.random.seed(42)
+
+    # copie des données
+    donnee = data_prepar.copy()
+
+    # suppression des NaN réels
+    donnee = donnee.dropna(
+        subset=liste_variable_marquan
+    )
+
+    # dictionnaire final
+    dict_MAE_RMSE = {}
+
+    # =====================================================
+    # comparaison variable par variable
+    # =====================================================
+
+    for variable in liste_variable_marquan:
+
+        # copie propre
+        donnee_test = donnee.copy()
+
+        # sélection aléatoire des indices
+        indices = np.random.choice(
+            donnee_test.index,
+            100,
+            replace=False
+        )
+
+        # sauvegarde des vraies valeurs
+        vraie_valeur = donnee_test.loc[
+            indices,
+            variable
+        ]
+
+        # création artificielle des NaN
+        donnee_test.loc[
+            indices,
+            variable
+        ] = np.nan
+
+        # =================================================
+        # application des méthodes
+        # =================================================
+
+        donnee_methode_impute_moy = (
+            methode_impute_moy(
+                donnee_test,
+                [variable]
+            )
+        )
+
+        donnee_methode_impute_medi = (
+            methode_impute_medi(
+                donnee_test,
+                [variable]
+            )
+        )
+
+        donnee_methode_interpo = (
+            methode_interpo(
+                donnee_test,
+                [variable]
+            )
+        )
+
+        donnee_methode_moy_glob = (
+            methode_moy_glob(
+                donnee_test,
+                [variable]
+            )
+        )
+
+        donnee_methode_med_glob = (
+            methode_med_glob(
+                donnee_test,
+                [variable]
+            )
+        )
+
+        # =================================================
+        # récupération des prédictions
+        # =================================================
+
+        pred_moy = (
+            donnee_methode_impute_moy
+            .loc[indices, variable]
+        )
+
+        pred_medi = (
+            donnee_methode_impute_medi
+            .loc[indices, variable]
+        )
+
+        pred_interpo = (
+            donnee_methode_interpo
+            .loc[indices, variable]
+        )
+
+        pred_moy_glob = (
+            donnee_methode_moy_glob
+            .loc[indices, variable]
+        )
+
+        pred_med_glob = (
+            donnee_methode_med_glob
+            .loc[indices, variable]
+        )
+
+        # =================================================
+        # calcul MAE et RMSE
+        # =================================================
+
+        dict_MAE_RMSE[variable] = {
+
+            "Methode_impute_moy":[mean_absolute_error(vraie_valeur,pred_moy),np.sqrt(mean_squared_error(vraie_valeur,pred_moy))],
+
+            "Methode_impute_medi":[mean_absolute_error(vraie_valeur,pred_medi),np.sqrt(mean_squared_error(vraie_valeur,pred_medi))],
+
+            "Methode_interpo":[mean_absolute_error(vraie_valeur,pred_interpo),np.sqrt(mean_squared_error(vraie_valeur,pred_interpo))],
+
+            "Methode_moy_glob":[mean_absolute_error(vraie_valeur,pred_moy_glob),np.sqrt(mean_squared_error(vraie_valeur,pred_moy_glob))],
+
+            "Methode_med_glob": [mean_absolute_error(vraie_valeur,pred_med_glob),np.sqrt(mean_squared_error(vraie_valeur,pred_med_glob))]
+        }
+
+    return dict_MAE_RMSE
+
+
+# =========================================================
+# Variables manquantes
+# =========================================================
+
+liste_variable_marquante_Kandi=["Pression","Humidite","Vitesse_Vent"]
+
+liste_variable_marquante_Parakou=["Pression","Temperature_Max","Temperature_Min","Humidite","Vitesse_Vent"]
+```
+
+
+```{python}
+#|echo: false
+# Calcul des erreurs
+
+dict_Kandi = calcul_erreur(
+    Kandi,
+    liste_variable_marquante_Kandi
+)
+
+dict_Parakou = calcul_erreur(
+    Parakou,
+    liste_variable_marquante_Parakou
+)
+def transform_dict(dict):
+    # liste vide
+    liste_resultats = []
+    dictio_methode={"Methode_impute_moy": "Moyenne historique","Methode_impute_medi": "Médiane historique",
+                    "Methode_interpo":"Interpolation","Methode_moy_glob":"Moyenne globale","Methode_med_glob":"Médiane globale"
+                    }
+    # parcours du dictionnaire
+    for variable, methodes in dict.items():
+
+        for methode, metriques in methodes.items():
+
+            liste_resultats.append({"Variable": variable,"Méthode":dictio_methode[methode],"MAE": metriques[0],"RMSE": metriques[1]})
+    return pd.DataFrame(liste_resultats)
+
+
+df_resultat_Kandi=transform_dict(dict_Kandi)
+
+df_resultat_Parakou=transform_dict(dict_Parakou)
+```
+
+**Station Kandi**
+
+```{python}
+#| label: tbl-result_imp_K
+#| tbl-cap: "Résultats d'imputations à Kandi"
+display(df_resultat_Kandi)
+```
+
+**Station Parakou**
+
+```{python}
+#| label: tbl-result_imp_P
+#| tbl-cap: "Résultats d'imputations à Parakou"
+display(df_resultat_Parakou)
+```
+
+### Représentation graphique des erreurs
+
+Voilà une représentation graphique du score MAE de chacun variables qui contient des valeurs manquantes dans les deux stations, pour chaque méthode d’imputation.
+```{python}
+#| label: fig-CPMAEP
+#| fig-cap: "Comparaison des MAE à Kandi et à Parakou"
+#| out-width: 90%   
+fig,axes=plt.subplots(1,2,figsize=(6,4))
+sns.barplot(data=df_resultat_Kandi,
+    x="Méthode",
+    y="MAE",
+    hue="Variable",
+    palette="Set1",ax=axes[0]
+)
+axes[0].set_title("Kandi")
+axes[0].legend(fontsize=6,markerscale=0.8)
+axes[0].set_xticklabels(
+    axes[0].get_xticklabels(),
+    fontsize=5,
+    rotation=40,
+    ha='right'
+)
+axes[0].set_yticklabels(
+    axes[0].get_yticklabels(),
+    fontsize=6,
+    rotation=40,
+    ha='right'
+)
+sns.barplot(data=df_resultat_Parakou,
+    x="Méthode",
+    y="MAE",
+    hue="Variable",
+    palette="Set1",ax=axes[1]
+)
+axes[1].set_title("Parakou")
+axes[1].set_xticklabels(
+    axes[1].get_xticklabels(),
+    fontsize=4,
+    rotation=40,
+    ha='right'
+)
+axes[1].set_yticklabels(
+    axes[1].get_yticklabels(),
+    fontsize=6,
+    rotation=40,
+    ha='right'
+)
+axes[1].legend(fontsize=6,markerscale=0.8)
+plt.tight_layout()
+plt.show();
+```
+
+## Conclusion
+
+Les résultats obtenus montrent que l’interpolation linéaire fournit les meilleures performances sur la majorité des variables météorologiques étudiées. Cette méthode présente les plus faibles valeurs de MAE et de RMSE pour les stations de Kandi et de Parakou. Les méthodes basées sur les moyennes et médianes globales présentent des performances moins satisfaisantes, ce qui montre qu’elles ne prennent pas suffisamment en compte la dynamique temporelle des données climatiques.
+
+l’interpolation linéaire sera utilisée dans la suite du projet pour le prétraitement des données avant l’analyse exploratoire et la modélisation prédictive.
+
+ 
+```{python}
+# Prétaitement final des données avec la méthode d’interpolation linéaire
+
+Kandi_final = methode_interpo(Kandi, liste_variable_marquante_Kandi)    
+Parakou_final = methode_interpo(Parakou, liste_variable_marquante_Parakou)
+
+Kandi_final.to_csv("data/Kandi_final.csv", index=False)
+Parakou_final.to_csv("data/Parakou_final.csv", index=False)    
+```
+
+# Analyse exploratoire des données météorologiques
+
+## Introduction
+
+Dans le cadre de ce mini-rapport, nous allons effectuer une analyse exploratoire sur nos données météorologiques des stations de Kandi et de Parakou de 2015 à 2025, déjà traitées. L’objectif de cette analyse est de mieux comprendre les tendances et les relations entre les différentes variables météorologiques, afin de déterminer les anomalies et les modèles qui pourraient être utilisés dans la prévision pluviométrique. Nous allons utiliser des techniques de visualisation et des statistiques pour explorer les données et en tirer des conclusions significatives.
+
+## Analyse des données météorologiques
+
+### Description des données
+
+Voilà, de façon générale, la description de nos données météorologiques : 
+
+```{python}
+#| label: tbl-descrip
+#| tbl-cap: "Description des données de Kandi et Parakou"
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+import seaborn as sns
+
+Kandi=pd.read_csv("data/Kandi_final.csv")
+Parakou=pd.read_csv("data/Parakou_final.csv")
+liste_var=["Pression","Temperature Maximal","Temperature Minimal","Humidite","Pluie"]
+liste_var_vrai=["Pression","Temperature_Max","Temperature_Min","Humidite","Pluviometrie"]
+
+diction={"Variables":liste_var,"Moyenne K":Kandi[liste_var_vrai].mean().values,"Moyenne P":Parakou[liste_var_vrai].mean().values,"Mediane K":Kandi[liste_var_vrai].median().values,"Mediane P":Parakou[liste_var_vrai].median().values,"Ecart-type K":Kandi[liste_var_vrai].std().values,"Ecart-type P":Parakou[liste_var_vrai].std().values}
+
+df=pd.DataFrame(diction).set_index("Variables")
+display(df)
+```
+
+Avec ce tableau, nous pouvons observer les moyennes, les médianes et les écarts-types des deux stations pour la pression, la température maximale et minimale, l'humidité ainsi que la pluviométrie.
+
+Premièrement, nous pouvons constater qu'il y a globalement plus de pluie à Parakou qu'à Kandi de 2015 à 2025. De plus, il fait plus chaud à Kandi qu'à Parakou. En effet, la pression, la température (surtout minimale) et l'humidité sont plus stables à Parakou qu'à Kandi. Par contre, la pluviométrie est moins stable à Parakou qu'à Kandi. Ce qui n'est pas normal, et cela suggère que la pluie dépend de phénomènes climatiques plus complexes et non uniquement de la stabilité des variables étudiées. On constate en plus que la moyenne des pluies est supérieure à la médiane, aussi bien pour Kandi que pour Parakou. Il y a donc de grandes valeurs extrêmes pour la pluie, ce qui prouve l'existence de fortes pluies rares et imprévues. Enfin, Parakou est globalement plus humide que Kandi de 2015 à 2025. Dans la suite, nous allons approfondir notre analyse pour mieux comprendre ces phénomènes.
+
+**NB : K** signifie Kandi et **P** signifie Parakou
+
+### Distribution de la pluie
+
+Dans cette section, nous allons analyser la distribution de la pluie à Kandi et à Parakou. Nous allons utiliser des histogrammes et des courbes de densité pour visualiser la distribution de la pluviométrie dans les deux stations. Cela nous permettra de mieux comprendre les tendances et les variations de la pluie dans ces deux régions.
+
+```{python}
+#| label: fig-DDPK
+#| fig-cap: "Distribution  et densité de la pluie à Kandi et Parakou"
+#| out-width: 90%
+figure,axes=plt.subplots(2,2,figsize=(6,4))
+axes[0,0].hist(Kandi["Pluviometrie"],bins=30)
+axes[0,0].set_title("Distribution de la pluie à Kandi",fontsize=7)
+axes[0,0].set_xlabel("Pluie (mm)",fontsize=6)
+axes[0,0].set_ylabel("Fréquence",fontsize=6)
+axes[0,0].set_xticklabels(
+    axes[0,0].get_xticklabels(),
+    fontsize=6,
+    rotation=40,
+    ha='right'
+)
+axes[0,0].set_yticklabels(
+    axes[0,0].get_yticklabels(),
+    fontsize=6,
+    rotation=40,
+    ha='right'
+)
+sns.kdeplot(Kandi.Pluviometrie,shade=True,label="Kandi",color="red",ax=axes[0,1]) 
+axes[0,1].set_title("Densité de la pluie à Kandi",fontsize=7)
+axes[0,1].set_xlabel("Pluie (mm)",fontsize=6)
+axes[0,1].set_ylabel("Densité",fontsize=6)
+axes[0,1].set_xticklabels(
+    axes[0,1].get_xticklabels(),
+    fontsize=6,
+    rotation=40,
+    ha='right'
+)
+axes[0,1].set_yticklabels(
+    axes[0,1].get_yticklabels(),
+    fontsize=6,
+    rotation=40,
+    ha='right'
+)
+axes[1,0].hist(Parakou["Pluviometrie"],bins=30,density=True)
+axes[1,0].set_title("Distribution de la pluie à Parakou",fontsize=7)
+axes[1,0].set_xlabel("Pluie (mm)",fontsize=6)
+axes[1,0].set_ylabel("Fréquence",fontsize=6)
+axes[1,0].set_xticklabels(
+    axes[1,0].get_xticklabels(),
+    fontsize=6,
+    rotation=40,
+    ha='right'
+)
+axes[1,0].set_yticklabels(
+    axes[1,0].get_yticklabels(),
+    fontsize=6,
+    rotation=40,
+    ha='right'
+)
+sns.kdeplot(Parakou.Pluviometrie,shade=True,label="Parakou",color="red",ax=axes[1,1]) 
+axes[1,1].set_title("Densité de la pluie à Parakou",fontsize=7)
+axes[1,1].set_xlabel("Pluie (mm)",fontsize=6)
+axes[1,1].set_ylabel("Densité",fontsize=6)
+axes[1,1].set_xticklabels(
+    axes[1,1].get_xticklabels(),
+    fontsize=6,
+    rotation=40,
+    ha='right'
+)
+axes[1,1].set_yticklabels(
+    axes[1,1].get_yticklabels(),
+    fontsize=6,
+    rotation=40,
+    ha='right'
+)
+plt.tight_layout()
+plt.show();
+```
+
+D'abord, on constate que les deux stations ont une distribution de la pluie très similaire. De plus, il semble qu'il ne pleut pas souvent dans les stations. Ce qui est normal, car les fortes pluies sont généralement rares, ce qui explique la grande différence entre la moyenne et la médiane. En effet, la distribution de la pluie à Parakou est plus étalée que celle de Kandi, ce qui suggère que les fortes pluies sont plus fréquentes à Parakou qu'à Kandi. Enfin, on constate que la distribution de la pluie à Kandi est plus concentrée autour de zéro que celle de Parakou, ce qui suggère que les jours sans pluie sont plus fréquents à Kandi qu'à Parakou.
+
+### Variation de la pluie au fil du mois
+
+Cette section consiste à déterminer en détail la relation entre la pluie et les mois dans les deux stations. Nous allons utiliser des graphiques de type heatmap pour visualiser la moyenne de la pluviométrie pour chaque mois de chaque année dans les deux stations. Cela nous permettra de mieux comprendre les tendances saisonnières de la pluie dans ces deux régions.
+
+```{python}
+#| label: fig-MPMAKP
+#| fig-cap: "Moyenne de la pluie par mois et par année à Kandi et à Parakou"
+#| out-width: 90%
+pivot_Kandi = Kandi.pivot_table(
+    values="Pluviometrie",
+    index="annee",
+    columns="mois"
+).sort_values(by="annee",ascending=False)
+
+pivot_Parakou = Parakou.pivot_table(
+    values="Pluviometrie",
+    index="annee",
+    columns="mois"
+).sort_values(by="annee",ascending=False)
+figure,axes=plt.subplots(1,2,figsize=(6,4))
+sns.heatmap(pivot_Kandi,annot=True,ax=axes[0],annot_kws={"fontsize": 4},fmt=".1f")
+axes[0].set_title("Kandi")
+axes[0].set_xticklabels(
+    axes[0].get_xticklabels(),
+    fontsize=6,
+    rotation=40,
+    ha='right'
+)
+axes[0].set_yticklabels(
+    axes[0].get_yticklabels(),
+    fontsize=6,
+    rotation=40,
+    ha='right'
+)
+sns.heatmap(pivot_Parakou,annot=True,ax=axes[1],annot_kws={"fontsize": 4},fmt=".1f")
+axes[1].set_title("Parakou")
+axes[1].set_xticklabels(
+    axes[1].get_xticklabels(),
+    fontsize=6,
+    rotation=40,
+    ha='right'
+)
+axes[1].set_yticklabels(
+    axes[1].get_yticklabels(),
+    fontsize=6,
+    rotation=40,
+    ha='right'
+)
+plt.tight_layout()
+plt.show();
+```
+
+On constate que dans les deux stations, la pluie est plus abondante entre le mois mai et le mois octobre. Ce qui correspond à la saison des pluies dans les deux régions. De plus, les mois de juillet, aoûte et septembre sont les plus pluvieux dans une année des deux stations. En effet, en Janvier et decembre à Kandi, il n'a eu jamais de pluis. Les fortes pluies ont souvent eu lieu dans le mois de aoûte. Le graphe ci-dessous nous confirme bien que le mois d'aoûte est le mois le plus pluvieux dans les deux stations, surtout à Kandi.
+
+```{python}
+#| label: fig-evoKP
+#| fig-cap: "Evolution de la pluie par mois en moyenne de Kandi et Parakou de 2015 à 2025"
+#| out-width: 90%
+plt.figure(figsize=(7,4),dpi=120)
+sns.lineplot(x=Kandi.groupby(["mois"])["Pluviometrie"].mean().index,y=Kandi.groupby(["mois"])["Pluviometrie"].mean().values,label="Kandi")
+sns.lineplot(x=Parakou.groupby(["mois"])["Pluviometrie"].mean().index,y=Parakou.groupby(["mois"])["Pluviometrie"].mean().values,label="Parakou")
+plt.xlabel("Mois")
+plt.ylabel("Pluie (mm)")
+plt.legend()
+plt.grid()
+plt.show();
+```
+
+### Corrélation entre les variables climatiques 
+
+Dans cette section, nous allons analyser la corrélation entre les différentes variables climatiques dans les deux stations. Nous allons utiliser des matrices de corrélation et des graphiques de dispersion pour visualiser les relations entre les variables telles que la pression, la température maximale et minimale, l'humidité et la pluviométrie. Cela nous permettra de mieux comprendre comment ces variables interagissent entre elles et comment elles peuvent influencer la pluie dans ces deux régions.
+
+```{python}
+#| label: fig-corkandiParakou
+#| fig-cap: "Corrélation entre les varibles climatiques à Kandi et à Parakou"
+#| out-width: 90%
+corr_Kandi=Kandi.drop(["annee","mois","jour"],axis=1).corr(numeric_only=True)
+corr_Parakou=Parakou.drop(["annee","mois","jour"],axis=1).corr(numeric_only=True)
+fig,axes=plt.subplots(1,2,figsize=(7,4))
+sns.heatmap(corr_Kandi,annot=True,ax=axes[0],annot_kws={"fontsize": 2},fmt=".1f")
+axes[0].set_title("Kandi")
+axes[0].set_xticklabels(
+    axes[0].get_xticklabels(),
+    fontsize=6,
+    rotation=40,
+    ha='right'
+)
+axes[0].set_yticklabels(
+    axes[0].get_yticklabels(),
+    fontsize=6,
+    rotation=40,
+    ha='right'
+)
+sns.heatmap(corr_Parakou,annot=True,ax=axes[1],annot_kws={"fontsize": 2},fmt=".1f")
+axes[1].set_title("Parakou")
+axes[1].set_xticklabels(
+    axes[1].get_xticklabels(),
+    fontsize=4,
+    rotation=40,
+    ha='right'
+)
+axes[1].set_yticklabels(
+    axes[1].get_yticklabels(),
+    fontsize=6,
+    rotation=40,
+    ha='right'
+)
+plt.tight_layout()
+plt.show();
+```
+
+On constate que la pluviométrie est positivement corrélée avec l’humidité dans les deux stations. Ce qui montre que les jours les plus humides sont généralement ceux où il y a plus de pluie. De plus, la pluviométrie est négativement corrélée avec la pression dans les deux stations. Ce qui suggère que les jours de forte pluie sont généralement associés à une pression atmosphérique plus basse. Enfin, la température maximale est négativement corrélée avec la pluviométrie dans les deux stations. Ce qui suggère que les jours les plus froids sont généralement ceux où il y a plus de pluie. Ce qui est normal, car lorsqu’il pleut, la température est souvent plus basse c'est à dire il fait froid. 
+
+### Observation des valeurs extrême 
+
+```{python}
+#| label: fig-extreme
+#| fig-cap: "Observation des valeurs extrêmes à Kandi et Parakou"
+#| out-width: 90%
+figure,axes=plt.subplots(3,2,figsize=(7,5))
+sns.boxplot(Kandi,x="mois",y="Pluviometrie",palette="Set2",ax=axes[0,0])
+axes[0,0].set_title("Kandi")
+
+sns.boxplot(Parakou,x="mois",y="Pluviometrie",palette="Set2",ax=axes[0,1])
+axes[0,1].set_title("Parakou")
+sns.boxplot(Kandi,x="mois",y="Temperature_Max",palette="Set2",ax=axes[1,0])
+sns.boxplot(Parakou,x="mois",y="Temperature_Max",palette="Set2",ax=axes[1,1])
+sns.boxplot(Kandi,x="mois",y="Humidite",palette="Set2",ax=axes[2,0])
+sns.boxplot(Parakou,x="mois",y="Humidite",palette="Set2",ax=axes[2,1])
+for i in range(3):
+    for j in range(2):
+        axes[i,j].set_yticklabels(
+            axes[i,j].get_yticklabels(),
+            fontsize=6,
+            rotation=40,
+            ha='right'
+        )
+        axes[i,j].set_xticklabels(
+            axes[i,j].get_xticklabels(),
+            fontsize=6,
+            rotation=40,
+            ha='right'
+        )
+plt.tight_layout()
+plt.show();
+```
+
+On constate une nouvelle fois que les mois de juillet, août et septembre sont les plus pluvieux dans les deux stations. À cette période, la température maximale diminue et l’humidité augmente. Ce qui confirme que les jours les plus froids et les plus humides sont généralement ceux où il y a le plus de pluie. De plus, les événements de fortes pluies sont plus fréquents à Parakou qu’à Kandi, et ces fortes pluies sont plus fréquentes durant les mois de juillet, août et septembre que durant les autres mois de l’année.
+
+### Stationnarité de la pluie
+
+Dans cette section, nous allons vérifier la stationnarité de la pluviométrie dans les deux stations. Voici un tableau récapitulatif des tests de stationnarité pour la pluviométrie à Kandi et à Parakou : 
+
+```{python}
+#| label: tbl-station
+#| tbl-cap: "Tableau de stationnarité"
+from statsmodels.tsa.stattools import adfuller
+
+resultat_Kandi = adfuller(
+    Kandi["Pluviometrie"]
+)
+
+resultat_Parakou = adfuller(
+    Parakou["Pluviometrie"]
+)
+
+df=pd.DataFrame({"Kandi":resultat_Kandi[:2],"Parakou":resultat_Parakou[:2]},index=["ADF","P-value"])
+display(df)
+```
+
+Dans les deux stations, la p-value est inférieure à 0,05. Et donc, la pluviométrie est stationnaire dans les deux stations. Ce qui suggère que les propriétés statistiques de la pluviométrie ne changent pas énormément au fil du temps dans les deux stations. Par conséquent, nous pouvons utiliser des modèles de séries temporelles, surtout le modèle ARIMA, pour prévoir la pluviométrie dans les deux stations.
+
+## Conclusion
+
+Dans ce mini-rapport, nous avons effectué une analyse exploratoire des données météorologiques des stations de Kandi et de Parakou de 2015 à 2025. Nous avons observé que la pluviométrie est plus abondante à Parakou qu'à Kandi, et que les mois de juillet, août et septembre sont les plus pluvieux dans une année dans les deux stations. De plus, nous avons constaté que la pluviométrie est positivement corrélée avec l'humidité et négativement corrélée avec la pression et la température maximale dans les deux stations. Enfin, nous avons vérifié que la pluviométrie est stationnaire dans les deux stations, ce qui suggère que nous pouvons utiliser des modèles de séries temporelles pour prévoir la pluviométrie dans ces deux régions.
+
+# Comparaison et choix des modèles pour la prévision pluviométrique
+
+## Introduction
+
+Ce mini rapport consiste à comparer les modèles ARIMA, SARIMA, SARIMAX, Prophet et XGBoost pour la prévision pluviométrique. Nous allons utiliser les données de précipitations journalières pour évaluer les performances de chaque modèle et déterminer lequel est le plus adapté pour la prévision à long terme. Ces modèles seront comparés en utilisant des graphes et les deux métriques utilisées dans la partie prétraitement pour la comparaison des méthodes d'imputation : le MAE et le RMSE. Tous ces modèles seront entraînés sur les données de 2015 à 2023 et testés sur les données de 2024 à 2025.
+
+## Utilisation des modèles
+
+### Modèle ARIMA
+
+**\underline{Définition}**
+
+Un modèle ARIMA (AutoRagressive Integrated Moving Average) est un modèle de séries temporelles qui décrit une variable observée comme une combinaison linéaire de ses valeurs passées, de ses erreurs passées et d'un éventuel processus de différenciation visant à assurer la stationnarité de la série, afin de réaliser des prévisions futures. Dans notre cas, le modèle ARIMA part du principe que la pluie d'aujourd'hui dépend de la pluie des jours précédents, ainsi que des erreurs de prévision passées. Il contient trois paramètres : p (ordre de l'auto-régression), d (degré de différenciation) et q (ordre de la moyenne mobile). On note souvent ce modèle ARIMA(p,d,q) pour indiquer les valeurs de ces paramètres.
+
+Le paramètre p représente le nombre de termes d'auto-régression dans le modèle. Il indique combien de valeurs passées de la série temporelle sont utilisées pour prédire la valeur actuelle. Par exemple, si p=2, cela signifie que les deux dernières valeurs de la série temporelle sont utilisées pour faire la prévision. 
+
+Le problème avec ARIMA est qu'il impose que la série temporelle soit stationnaire, c'est-à-dire que ses propriétés statistiques ne changent pas au fil du temps. D'ou l'importance du paramètre d qui représente le nombre de différenciations nécessaires pour rendre la série temporelle stationnaire. Par exemple, si d=1, cela signifie que nous devons différencier la série temporelle une fois pour la rendre stationnaire. Mais dans notre cas, la série temporelle de précipitations est déjà stationnaire, donc d=0.
+
+Le paramètre q indique combien de termes de moyenne mobile sont inclus dans le modèle. Il représente le nombre de valeurs passées des erreurs de prévision qui sont utilisées pour prédire la valeur actuelle. Par exemple, si q=1, cela signifie que l'erreur de prévision du jour précédent est utilisée pour faire la prévision du jour actuel. Dans ce cas, le modèle ARIMA peut être représenté par l'équation suivante :
+
+$Y_t = \alpha_1 Y_{t-1}+\alpha_2 Y_{t-2} + \epsilon_t + \beta_1 \epsilon_{t-1} + c$   (En supposant p=2, d=0 et q=1)
+
+avec :
+
+- $Y_t$ : la valeur de la série temporelle à l'instant t
+
+- $\alpha_1$ et $\alpha_2$ : les coefficients d'auto-régression
+
+- $\epsilon_t$ : l'erreur de prévision à l'instant t
+
+- $\beta_1$ : le coefficient de la moyenne mobile
+
+- $c$ : une constante
+
+
+**\underline{Résultats du modèle ARIMA}**
+
+Après avoir ajusté le modèle ARIMA à nos données de précipitations, nous avons obtenu les résultats suivants :
+
+```{python}
+#| label: tbl-resultats-arima
+#| tbl-cap: "Résultats du modèle ARIMA"
+import pandas as pd
+df=pd.read_csv("data//resultats_arima.csv").set_index("Station").drop(["p","q"],axis=1)
+display(df)
+```
+
+
+Voilà un graphe montrant l'évolution entre les vrais valeurs et la valuers prédire entre 2024 et 2025 par le modèle ARIMA : 
+
+![Prédiction avec Arima à Kandi](Image/Predict_Kandi_Arima.png){width=45%}
+![Prédiction avec Arima à Kandi](Image/Predict_Parakou_Arima.png){width=45%}
+
+On constate que le modèle ARIMA est plus performant à Kandi qu'à Parakou. Cela suggère que le modèle ARIMA est plus adapté pour la prévision des précipitations à Kandi qu'à Parakou. Cependant, les performances du modèle ARIMA ne sont pas très satisfaisantes. 
+
+D'après les graphes précédents, on constate que dans la station Kandi, le modèle ARIMA arrive à peu près à prédire dans les mois de Janvier, Février, Mars, Avril, Mai, Novembre et de Décembre mais n'arrive pas à prédire dans les autres mois. Dans la station Parakou, le modèle ARIMA arrive à peu près à prédire dans les mois de Janvier, Février, Mars, Avril, Novembre et de Décembre mais n'arrive pas à prédire dans les autres mois.  Et donc, le modèle n'est pas performant dans les mois de saison pluvieuse.  Cela peut être dû au fait que le modèle ARIMA ne tient pas compte des composantes saisonnières. C'est pourquoi nous allons maintenant explorer le modèle SARIMA, qui prend en compte les composantes saisonnières de la série temporelle.
+
+### Modèle SARIMA
+
+**\underline{Définition}**
+
+Un modèle SARIMA (Seasonal AutoRegressive Integrated Moving Average) est une extension du modèle ARIMA qui prend en compte les composantes saisonnières d'une série temporelle. Il inclut des termes supplémentaires pour modéliser les effets saisonniers, tels que les variations périodiques qui se produisent à des intervalles réguliers (par exemple, les précipitations qui varient selon les saisons). Le modèle SARIMA est défini par sept paramètres : p, d, q, P, D, Q et m. Les paramètres p, d et q sont les mêmes que ceux du modèle ARIMA, tandis que les paramètres P, D et Q représentent les composantes saisonnières du modèle. Le paramètre m indique la périodicité de la saisonnalité (par exemple, m=12 pour des données mensuelles avec une saisonnalité annuelle).
+
+Pour notre cas, le modèle SARIMA peut être représenté par l'équation suivante :
+
+$Y_t = \alpha_1 Y_{t-1}+\alpha_2 Y_{t-2} + \epsilon_t + \beta_1 \epsilon_{t-1} + \gamma_1 Y_{t-m} + \delta_1 \epsilon_{t-m} + c$  (En supposant p=2, d=0, q=1, P=1, D=0, Q=1)
+
+avec :  
+
+- $Y_t$ : la valeur de la série temporelle à l'instant t
+
+- $\alpha_1$ et $\alpha_2$ : les coefficients d'auto-régression
+
+- $\epsilon_t$ : l'erreur de prévision à l'instant t  
+
+- $\beta_1$ : le coefficient de la moyenne mobile
+
+- $\gamma_1$ : le coefficient d'auto-régression saisonnière
+
+- $\delta_1$ : le coefficient de la moyenne mobile saisonnière
+
+- $c$ : une constante
+
+
+**\underline{Résultats du modèle SARIMA}**
+
+Après avoir ajusté le modèle SARIMA à nos données de précipitations avec m=7, nous avons obtenu les résultats suivants :
+
+```{python}
+#| label: tbl-resultats-sarima
+#| tbl-cap: "Résultats du modèle SARIMA"
+df=pd.read_csv("data//resultats_sarima_semestrielle.csv").set_index("Station").drop(["p ","q ","P ","Q"],axis=1)
+display(df)
+```
+
+Voilà un graphe montrant l'évolution entre les vrais valeurs et la valuers prédire entre 2024 et 2025 par le modèle SARIMA :
+
+![Prédiction avec Sarima à Kandi](Image\Predict_Kandi_Sarima.png){width=45%}
+![Prédiction avec Sarima à Parakou](Image\Predict_Parakou_Sarima.png){width=45%}
+
+Bien que SARIMA prenne en compte une composante saisonnière, les résultats obtenus ne montrent pas d'amélioration par rapport à ARIMA. Cela peut indiquer que la saisonnalité hebdomadaire (m=7) n'est pas suffisamment marquée dans les données étudiées.
+
+La question qui se pose maintenant est de savoir si l'ajout de variables exogènes (variables explicatives) dans le modèle SARIMA peut améliorer les performances du modèle. C'est pourquoi nous allons maintenant explorer le modèle SARIMAX, qui permet d'inclure des variables exogènes dans la modélisation.
+
+### Modèle SARIMAX
+
+**\underline{Définition}**
+
+Un modèle SARIMAX (Seasonal AutoRegressive Integrated Moving Average with eXogenous regressors) est une extension du modèle SARIMA qui permet d'inclure des variables exogènes (variables explicatives) dans la modélisation. Dans notre cas, les variables explicatives seront la température maximale du jour precédent, la température minimale du jour précédent, l'humidité du jour précédent, la pression du jour précédent et la vitesse du vent du jour précédent. Le modèle SARIMAX est défini par les mêmes paramètres que le modèle SARIMA (p, d, q, P, D, Q et m), mais il inclut seulement des coefficients pour les variables exogènes.
+
+
+**\underline{Résultats du modèle SARIMAX}**
+
+Après avoir ajusté le modèle SARIMAX à nos données de précipitations avec m=7, nous avons obtenu les résultats suivants :
+
+```{python}
+#| label: tbl-resultats-sarimax
+#| tbl-cap: "Résultats du modèle SARIMAX"
+df=pd.read_csv("data//resultats_sarima_semestrielle_Avec_VE.csv").set_index("Station").drop(["p","q","P","Q"],axis=1)
+display(df)
+```
+
+
+Voilà un graphe montrant l'évolution entre les vrais valeurs et la valuers prédire entre 2024 et 2025 par le modèle SARIMAX :
+
+![Prédiction avec Sarimax à Kandi](Image/Predict_Kandi_Sarimax.png){width=45%}
+![Prédiction avec Sarimax à Parakou](Image/Predict_Parakou_Sarimax.png){width=45%}
+
+Apparemment, l'ajout des variables exogènes n'a pas toujours amélioré les performances du modèle SARIMA. Cela peut être dû à plusieurs facteurs, tels que la qualité des données exogènes, la relation entre les variables exogènes et la variable cible (précipitations). Il est possible que les variables exogènes utilisées ne soient pas suffisamment informatives pour améliorer les prévisions de précipitations, ou que le modèle SARIMAX ne soit pas le meilleur choix pour capturer les relations entre les variables. C'est pourquoi nous allons maintenant explorer le modèle Prophet.
+
+### Modèle Prophet
+
+**\underline{Définition}**
+
+Le modèle Prophet est un modèle de prévision de séries temporelles développé par Facebook. Il est conçu pour être facile à utiliser et à interpréter, tout en étant capable de gérer des données avec des tendances non linéaires, des saisonnalités multiples et des jours fériés. Le modèle Prophet décompose une série temporelle en trois composantes principales : la tendance, la saisonnalité et les jours fériés. La tendance capture les changements à long terme dans la série temporelle, la saisonnalité capture les variations périodiques (par exemple, les précipitations qui varient selon les saisons), et les jours fériés capturent les effets spécifiques liés à des dates particulières. Le modèle Prophet utilise une approche de régression pour modéliser ces composantes, ce qui permet de faire des prévisions futures en extrapolant les tendances et les saisonnalités identifiées dans les données historiques. Le modèle Prophet est particulièrement efficace pour les séries temporelles avec des tendances non linéaires et des saisonnalités multiples, ce qui en fait un choix populaire pour la prévision de données telles que les précipitations.
+
+
+**\underline{Résultats du modèle Prophet}**
+
+Après avoir ajusté le modèle Prophet à nos données de précipitations, nous avons obtenu les résultats suivants :
+
+```{python}
+#| label: tbl-resultats-prophet
+#| tbl-cap: "Résultats du modèle Prophet"
+df=pd.read_csv("data//resultats_prophet_avec_VE.csv").set_index("Station")
+display(df)
+```
+
+Voilà un graphe montrant l'évolution entre les vrais valeurs et la valuers prédire entre 2024 et 2025 par le modèle Prophet :
+
+![Prédiction avec Prophet à Kandi](Image/Predict_Kandi_Prophetx.png){width=45%}
+![Prédiction avec Prophet à Parakou](Image/Predict_Parakou_Prophetx.png){width=45%}
+
+On constate que le modèle Prophet est plus performant que les modèles ARIMA, SARIMA et SARIMAX, surtout à Kandi et corrige partiellement les erreurs des autres modèles dans les mois de saisons de pluviométrie. Cela suggère que le modèle Prophet est plus adapté pour la prévision des précipitations à Kandi et à Parakou que les autres modèles. Le modèle Prophet est capable de capturer les tendances non linéaires et les saisonnalités multiples présentes dans les données de précipitations, ce qui peut expliquer ses meilleures performances par rapport aux modèles ARIMA, SARIMA et SARIMAX. Cependant, avoir une pluie négative est impossible car ce qui nous montre les graphes précédents. C'est pour cette raison nous allons maintenant explorer le modèle XGBoost.
+
+### Modèle XGBoost
+
+**\underline{Définition}**
+
+Le model XGBoost (eXtreme Gradient Boosting) est un algorithme de machine learning basé sur un ensemble d'arbres de décision construits séquentiellement. Chaque nouvel arbre cherche à corriger les erreurs commises par les arbres précédents. Pour la prévision pluviométrique, le modèle utilise des variables explicatives telles que les valeurs retardées de la pluie, les moyennes mobiles et les valeurs des variables météorologiques des jours précédents afin de prédire les précipitations futures. Le modèle XGBoost est particulièrement efficace pour capturer les relations non linéaires et les interactions complexes entre les variables, ce qui peut être bénéfique pour la prévision des précipitations, qui sont souvent influencées par de nombreux facteurs météorologiques. De plus, XGBoost intègre des mécanismes de régularisation pour éviter le surapprentissage, ce qui peut améliorer la généralisation du modèle sur de nouvelles données.
+
+
+**\underline{Résultats du modèle XGBoost}**
+
+Les hyperparamètres du modèle XGBoost ont été optimisés à l'aide de la validation croisée temporelle (TimeSeriesSplit) combinée à une recherche par grille (GridSearchCV), permettant d'identifier la combinaison de paramètres minimisant l'erreur de prévision MAE. Nous avons obtenu les résultats suivants :
+
+```{python}
+#| label: tbl-resultats-xgboost
+#| tbl-cap: "Résultats du modèle XGBoost"
+df=pd.read_csv("data//resultats_xgboost.csv").set_index("Station")
+display(df)
+```
+
+
+Voilà un graphe montrant l'évolution entre les vrais valeurs et la valuers prédire entre 2024 et 2025 par le modèle XGBoost :
+
+![Prédiction avec XGBoost à Kandi](Image/Predict_Kandi_Xgboost.png){width=45%}
+![Prédiction avec XGBoost à Parakou](Image/Predict_Parakou_Xgboost.png){width=45%}
+
+XGBoost a montré des performances comparables à celles du modèle Prophet, avec une légère amélioration à Parakou. Cela suggère que le modèle XGBoost est également adapté pour la prévision des précipitations à Kandi et à Parakou. Le modèle XGBoost est capable de capturer les tendances non linéaires et les interactions complexes entre les variables, ce qui peut expliquer ses bonnes performances par rapport aux autres modèles. 
+
+## Conclusion
+
+Voilà un tableau récapitulatif des performances de tous les modèles à Kandi et à Parakou :
+
+```{python}
+#| label: tbl-resulrecup_Kandi
+#| tbl-cap: "Tableau récapitulatif ordonnée des performances des modèles à Kandi"
+arima=pd.read_csv("data//resultats_arima.csv")
+arima["Model"]="ARIMA"
+sarima=pd.read_csv("data//resultats_sarima_semestrielle.csv")
+sarima["Model"]="SARIMA"
+sarimax=pd.read_csv("data//resultats_sarima_semestrielle_Avec_VE.csv")
+sarimax["Model"]="SARIMAX"
+prophet=pd.read_csv("data//resultats_prophet_avec_VE.csv")
+prophet["Model"]="Prophet"
+xgboost=pd.read_csv("data//resultats_xgboost.csv")
+xgboost["Model"]="XGBoost"
+resultats=pd.concat([arima[["Model","Station","MAE","RMSE"]],sarima[["Model","Station","MAE","RMSE"]],sarimax[["Model","Station","MAE","RMSE"]],prophet[["Model","Station","MAE","RMSE"]],xgboost[["Model","Station","MAE","RMSE"]]],axis=0)
+resultats.set_index("Station")
+df=resultats[resultats["Station"]=="Kandi"].sort_values(by=["MAE","RMSE"],ascending=True).drop(["Station"],axis=1).set_index(["Model"])
+display(df)
+```
+
+```{python}
+#| label: tbl-resulrecup_Parakou
+#| tbl-cap: "Tableau récapitulatif ordonnée des performances des modèles à Parakou"
+df=resultats[resultats["Station"]=="Parakou"].sort_values(by=["MAE","RMSE"],ascending=True).drop(["Station"],axis=1).set_index(["Model"])
+display(df)
+```
+
+Les résultats montrent qu'aucun modèle n'est systématiquement supérieur sur toutes les stations. À Kandi, Prophet présente les meilleures performances en termes de MAE et de RMSE, tandis qu'à Parakou XGBoost obtient le meilleur compromis entre précision et capacité de généralisation. Mais pour avoir un bon résultat au niveau des mois de saison pluvieuse et limiter les risques, le mieux est d'utiliser le modèle XGBoost dans les deux stations. Etant donné que les modèles Prophet et XGBoost ont montré des performances comparables, le choix entre les deux peut dépendre de facteurs tels que la facilité d'interprétation du modèle, la disponibilité des données exogènes, les ressources informatiques disponibles pour l'entraînement du modèle et la faciliter de prédiction. En conclusion, le modèle XGBoost semble être le plus adapté pour la prévision des précipitations à Kandi et à Parakou, en particulier pendant les mois de saison pluvieuse, grâce à sa capacité à capturer les relations non linéaires et les interactions complexes entre les variables météorologiques. 

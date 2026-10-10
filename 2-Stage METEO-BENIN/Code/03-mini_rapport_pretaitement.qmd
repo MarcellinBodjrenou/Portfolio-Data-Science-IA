@@ -1,0 +1,667 @@
+---
+title: "Prétraitement et comparaison des méthodes d’imputation des valeurs manquantes"
+author: "BODJRENOU Marcellin & AKODOHOU Ginette"
+format:
+  pdf:
+    toc: true
+    number-sections: true
+    colorlinks: true
+
+execute:
+  echo: true
+  warning: false
+  message: false
+---
+
+# Introduction
+
+Dans le cadre de cette étude portant sur l’analyse et la prévision des données météorologiques des stations de Kandi et de Parakou sur la période 2015-2025, une étape importante de prétraitement des données a été réalisée.
+
+L’objectif de ce travail est :
+
+- de créer des jeux de données spécifiques à chaque station ;
+- d’analyser les valeurs manquantes ;
+- de comparer plusieurs méthodes d’imputation ;
+- de sélectionner la méthode la plus performante.
+
+# Apercu genérale des données reçu
+
+## Importation des bibliothèques
+
+```{python}
+import pandas as pd
+import numpy as np
+
+import matplotlib.pyplot as plt
+import seaborn as sns
+
+import missingno as msn
+
+from sklearn.metrics import mean_absolute_error,mean_squared_error
+```
+
+## Chargement des données reçu
+
+```{python}
+data=pd.read_excel("Donnees_Stagiaire_Marcellin.xls")
+```
+
+## Aperçu des données reçu
+
+```{python}
+print(data.head())
+```
+
+## Informations générales
+
+```{python}
+data.info()
+```
+
+## Les variables 
+
+```{python}
+data.columns
+```
+
+## Stations présentes dans les données
+
+```{python}
+data.Name.unique()
+```
+
+## Les types de donné reçu
+
+```{python}
+print(data["Name.1"].unique())
+
+print(data.Description.unique())
+```
+
+# Création des jeux de données pour le projet
+
+Les données fournies constituent un dataframe dans lequel chaque ligne représente une information précise (pression, température, humidité, etc.) des 31 jours d’un mois pour une année donnée.
+
+## Création des variables année, mois et jour de Kandi et de Parakou
+
+```{python}
+temps=pd.date_range(start='2015-01-01',end='2025-12-31',freq='D')
+
+data_Kandi=pd.DataFrame({"Lieu":"KANDI_AEROPORT","annee":temps.year,
+                        "mois":temps.month,"jour":temps.day})
+
+data_parakou=pd.DataFrame({"Lieu":"PARAKOU_AEROPORT","annee":temps.year,
+                        "mois":temps.month,"jour":temps.day})
+```
+
+## Aperçu du dataset de Kandi
+
+```{python}
+data_Kandi
+```
+
+## Aperçu du dataset de Parakou
+
+```{python}
+data_parakou
+```
+
+## Création des variables Pression, température, vitesse de vent, humidité et pluiviométrie
+
+```{python}
+data=data.rename(columns={"01":"1","02":"2","03":"3","04":"4","05":"5",
+                "06":"6","07":"7","08":"8","09":"9"})
+def verif(data_verif):
+    if 0<len(data_verif):
+        return data_verif.iloc[0]
+    else:
+        return np.nan
+def verif_temp(data_verif_temp):
+    if 2<=len(data_verif_temp):
+        return [data_verif_temp.iloc[0],data_verif_temp.iloc[1]]
+    elif len(data_verif_temp)==1:
+        return [data_verif_temp.iloc[0],data_verif_temp.iloc[0]]
+    else:
+        return[np.nan,np.nan]
+    
+def creation(data_ge,lieu):
+    list_pression=[]
+    list_pluvimetrie=[]
+    list_temperature_max=[]
+    list_temperature_min=[]
+    list_humidite=[]
+    list_vitesse_vent=[]
+
+    data_gene=data_ge.copy()
+    for i in range(len(data_gene)):
+        Annee=data_gene.iloc[i]["annee"]
+        Mois=data_gene.iloc[i]["mois"]
+        Jour=data_gene.iloc[i]["jour"]
+    
+        data_virt=data[(data.Name==lieu) & (data.Year==Annee) & (data.Month==Mois)]
+
+        list_pression.append(verif(data_virt[data_virt.Description=="hPa"][f"{Jour}"]))
+
+        list_temperature_max.append(
+            verif_temp(data_virt[data_virt.Description=='°C'][f"{Jour}"])[0])
+
+        list_temperature_min.append(
+            verif_temp(data_virt[data_virt.Description=='°C'][f"{Jour}"])[1])
+                                
+        list_humidite.append(
+            verif(data_virt[data_virt.Description=='%'][f"{Jour}"]))
+
+        list_vitesse_vent.append(
+            verif(data_virt[data_virt.Description=='m/s'][f"{Jour}"]))
+
+        list_pluvimetrie.append(
+            verif(data_virt[data_virt.Description=="mm"][f"{Jour}"]))
+
+    data_gene["Pression"]=list_pression
+
+    data_gene["Temperature_Max"]=list_temperature_max
+
+    data_gene["Temperature_Min"]=list_temperature_min
+
+    data_gene["Humidite"]=list_humidite
+
+    data_gene["Vitesse_Vent"]=list_vitesse_vent
+
+    data_gene["Pluviometrie"]=list_pluvimetrie
+
+    return data_gene
+
+Kandi=creation(data_Kandi,"KANDI_AEROPORT")
+
+Parakou=creation(data_parakou,"PARAKOU_AEROPORT")
+```
+
+## Aperçu final du dataset de Kandi
+
+```{python}
+print(Kandi)
+```
+
+## Aperçu final du dataset de Parakou
+
+```{python}
+print(Parakou)
+```
+
+
+## Dimensions des datasets
+
+```{python}
+print("Dimension Kandi :", Kandi.shape)
+
+print("Dimension Parakou :", Parakou.shape)
+```
+
+## Sauvegarde des datasets
+
+```{python}
+Kandi.to_csv("data/Kandi.csv",index=False)
+
+Parakou.to_csv("data/Parakou.csv",index=False)
+```
+
+# Prétraitement des données 
+
+## Valeurs manquantes de Kandi
+
+```{python}
+Kandi.isnull().sum()[0<Kandi.isnull().sum()]
+```
+
+## Valeurs manquantes de Parakou
+
+```{python}
+Parakou.isnull().sum()[0<Parakou.isnull().sum()]
+```
+
+## Visualisation des valeurs manquantes de Kandi
+
+```{python}
+plt.figure(figsize=(10,8))
+msn.matrix(Kandi.select_dtypes(include="number"))
+```
+
+## Visualisation des valeurs manquantes de Parakou
+
+```{python}
+plt.figure(figsize=(10,8),dpi=100)
+msn.matrix(Parakou.select_dtypes(include="number"))
+```
+
+## Suppression des lignes très incomplètes
+
+```{python}
+print(Parakou[(Parakou.Pression.isnull()) & (Parakou.Humidite.isnull()) & 
+        (Parakou.Temperature_Max.isnull()) & (Parakou.Temperature_Min.isnull())
+        &(Parakou.Vitesse_Vent.isnull())])
+
+print(Kandi[Kandi.Pluviometrie.isnull()])
+```
+
+Certaines observations de Parakou présentent un taux très élevé de valeurs manquantes. Ces lignes ont été supprimées afin de garantir la qualité des données et de limiter l’introduction d’erreurs liées aux méthodes d’imputation.
+
+Par ailleurs, une observation de Kandi contenant uniquement une valeur manquante pour la pluviométrie a également été supprimée compte tenu de son caractère isolé et de son impact négligeable sur l’ensemble des données.
+
+```{python}
+Parakou=Parakou.dropna(thresh=6)
+Kandi=Kandi.drop([Kandi[Kandi.Pluviometrie.isnull()].index[0]],axis=0)
+```
+
+## Méthodes d’imputation
+
+Plusieurs méthodes d’imputation ont été étudiées :
+
+- moyenne historique ;
+- médiane historique ;
+- interpolation linéaire ;
+- moyenne globale ;
+- médiane globale.
+
+### Moyenne historique et médiane historique 
+Ces deux méthodes consistent à remplacer une valeur manquante respectivement par la moyenne et la médiane des valeurs observées des années précédentes, pour le même jour et le même mois.
+
+### Interpolation linéaire 
+Cette méthode consiste à remplacer une valeur manquante en utilisant la valeur précédente et la valeur suivante. Par exemple, en observant la pression du jour précédent et celle du jour suivant, il est possible d’estimer la pression du jour concerné.
+
+### Moyenne globale et médiane globale
+Ces méthodes consistent à remplacer une valeur manquante respectivement par la moyenne et la médiane générales. 
+
+```{python}
+#| echo: false
+# Méthode de moyenne historique
+def methode_impute_moy(data_inpute, liste_variable_marquante):
+
+    donnee = data_inpute.copy()
+
+    for variable in liste_variable_marquante:
+
+        donnee_marquante = donnee[donnee[variable].isnull()]
+
+        for i in donnee_marquante.index:
+
+            annee = donnee.loc[i, "annee"]
+            mois = donnee.loc[i, "mois"]
+            jour = donnee.loc[i, "jour"]
+
+            donnee_utilise = donnee[
+                (donnee["annee"] < annee) &
+                (donnee["mois"] == mois) &
+                (donnee["jour"] == jour)
+            ]
+
+            valeur = donnee_utilise[variable].mean()
+
+            if not pd.isna(valeur):
+
+                donnee.loc[i, variable] = valeur
+
+            else:
+
+                donnee.loc[i, variable] =donnee[variable].median()
+                
+    return donnee
+```
+
+
+```{python}
+#| echo: false
+#Méthode de médiane historique
+def methode_impute_medi(data_inpute, liste_variable_marquante):
+
+    donnee = data_inpute.copy()
+
+    for variable in liste_variable_marquante:
+
+        donnee_marquante = donnee[donnee[variable].isnull()]
+
+        for i in donnee_marquante.index:
+
+            annee = donnee.loc[i, "annee"]
+            mois = donnee.loc[i, "mois"]
+            jour = donnee.loc[i, "jour"]
+
+            donnee_utilise = donnee[
+                (donnee["annee"] < annee) &
+                (donnee["mois"] == mois) &
+                (donnee["jour"] == jour)
+            ]
+
+            valeur = donnee_utilise[variable].median()
+
+            if not pd.isna(valeur):
+
+                donnee.loc[i, variable] = valeur
+
+            else:
+
+                donnee.loc[i, variable] = donnee[variable].median()
+
+    return donnee
+
+```
+
+
+
+```{python}
+#| echo: false
+#| # Méthode de moyenne globale
+def methode_moy_glob(data_inpute, liste_variable_marquante):
+
+    donnee = data_inpute.copy()
+
+    for variable in liste_variable_marquante:
+
+        donnee[variable] = donnee[variable].fillna(
+            donnee[variable].mean()
+        )
+
+    return donnee
+
+```
+
+
+
+
+```{python}
+#| echo: false
+# Méthode de médiane globale
+def methode_med_glob(data_inpute, liste_variable_marquante):
+
+    donnee = data_inpute.copy()
+
+    for variable in liste_variable_marquante:
+
+        donnee[variable] = donnee[variable].fillna(
+            donnee[variable].median()
+        )
+
+    return donnee
+```
+
+
+```{python}
+#| echo: false
+# Méthode d'interpolation linéaire
+
+def methode_interpo(data_inpute, liste_variable_marquante):
+
+    donnee = data_inpute.copy()
+
+    for variable in liste_variable_marquante:
+
+        donnee[variable] = (
+            donnee[variable]
+            .interpolate(
+                method="linear",
+                limit_direction="both"
+            )
+        )
+
+    return donnee
+
+```
+
+## Protocole expérimental
+
+Afin de comparer les différentes méthodes d’imputation, certaines valeurs connues ont été supprimées artificiellement dans les données.
+
+Les valeurs supprimées ont ensuite été reconstruites par chaque méthode d’imputation.
+
+Les performances ont été évaluées à l’aide des métriques :
+
+- $MAE=\frac{1}{n}\sum_{i=1}^{n}|x_{i,pred}-x_{i,vrai}|$
+- $RMSE=\sqrt{\frac{1}{n}\sum_{i=1}^{n}(x_{i,pred}-x_{i,vrai})^2}$.
+
+
+
+```{python}
+#| echo: false
+# Fonction de comparaison
+def calcul_erreur(data_prepar, liste_variable_marquan):
+
+    # reproductibilité
+    np.random.seed(42)
+
+    # copie des données
+    donnee = data_prepar.copy()
+
+    # suppression des NaN réels
+    donnee = donnee.dropna(
+        subset=liste_variable_marquan
+    )
+
+    # dictionnaire final
+    dict_MAE_RMSE = {}
+
+    # =====================================================
+    # comparaison variable par variable
+    # =====================================================
+
+    for variable in liste_variable_marquan:
+
+        # copie propre
+        donnee_test = donnee.copy()
+
+        # sélection aléatoire des indices
+        indices = np.random.choice(
+            donnee_test.index,
+            100,
+            replace=False
+        )
+
+        # sauvegarde des vraies valeurs
+        vraie_valeur = donnee_test.loc[
+            indices,
+            variable
+        ]
+
+        # création artificielle des NaN
+        donnee_test.loc[
+            indices,
+            variable
+        ] = np.nan
+
+        # =================================================
+        # application des méthodes
+        # =================================================
+
+        donnee_methode_impute_moy = (
+            methode_impute_moy(
+                donnee_test,
+                [variable]
+            )
+        )
+
+        donnee_methode_impute_medi = (
+            methode_impute_medi(
+                donnee_test,
+                [variable]
+            )
+        )
+
+        donnee_methode_interpo = (
+            methode_interpo(
+                donnee_test,
+                [variable]
+            )
+        )
+
+        donnee_methode_moy_glob = (
+            methode_moy_glob(
+                donnee_test,
+                [variable]
+            )
+        )
+
+        donnee_methode_med_glob = (
+            methode_med_glob(
+                donnee_test,
+                [variable]
+            )
+        )
+
+        # =================================================
+        # récupération des prédictions
+        # =================================================
+
+        pred_moy = (
+            donnee_methode_impute_moy
+            .loc[indices, variable]
+        )
+
+        pred_medi = (
+            donnee_methode_impute_medi
+            .loc[indices, variable]
+        )
+
+        pred_interpo = (
+            donnee_methode_interpo
+            .loc[indices, variable]
+        )
+
+        pred_moy_glob = (
+            donnee_methode_moy_glob
+            .loc[indices, variable]
+        )
+
+        pred_med_glob = (
+            donnee_methode_med_glob
+            .loc[indices, variable]
+        )
+
+        # =================================================
+        # calcul MAE et RMSE
+        # =================================================
+
+        dict_MAE_RMSE[variable] = {
+
+            "Methode_impute_moy":[mean_absolute_error(vraie_valeur,pred_moy),np.sqrt(mean_squared_error(vraie_valeur,pred_moy))],
+
+            "Methode_impute_medi":[mean_absolute_error(vraie_valeur,pred_medi),np.sqrt(mean_squared_error(vraie_valeur,pred_medi))],
+
+            "Methode_interpo":[mean_absolute_error(vraie_valeur,pred_interpo),np.sqrt(mean_squared_error(vraie_valeur,pred_interpo))],
+
+            "Methode_moy_glob":[mean_absolute_error(vraie_valeur,pred_moy_glob),np.sqrt(mean_squared_error(vraie_valeur,pred_moy_glob))],
+
+            "Methode_med_glob": [mean_absolute_error(vraie_valeur,pred_med_glob),np.sqrt(mean_squared_error(vraie_valeur,pred_med_glob))]
+        }
+
+    return dict_MAE_RMSE
+
+
+# =========================================================
+# Variables manquantes
+# =========================================================
+
+liste_variable_marquante_Kandi=["Pression","Humidite","Vitesse_Vent"]
+
+liste_variable_marquante_Parakou=["Pression","Temperature_Max","Temperature_Min","Humidite","Vitesse_Vent"]
+```
+
+
+```{python}
+#|echo: false
+# Calcul des erreurs
+
+dict_Kandi = calcul_erreur(
+    Kandi,
+    liste_variable_marquante_Kandi
+)
+
+dict_Parakou = calcul_erreur(
+    Parakou,
+    liste_variable_marquante_Parakou
+)
+def transform_dict(dict):
+    # liste vide
+    liste_resultats = []
+    dictio_methode={"Methode_impute_moy": "Moyenne historique","Methode_impute_medi": "Médiane historique",
+                    "Methode_interpo":"Interpolation","Methode_moy_glob":"Moyenne globale","Methode_med_glob":"Médiane globale"
+                    }
+    # parcours du dictionnaire
+    for variable, methodes in dict.items():
+
+        for methode, metriques in methodes.items():
+
+            liste_resultats.append({"Variable": variable,"Méthode":dictio_methode[methode],"MAE": metriques[0],"RMSE": metriques[1]})
+    return pd.DataFrame(liste_resultats)
+
+
+df_resultat_Kandi=transform_dict(dict_Kandi)
+
+df_resultat_Parakou=transform_dict(dict_Parakou)
+```
+
+## Résultats de Kandi
+
+```{python}
+print(df_resultat_Kandi)
+```
+
+## Résultats de Parakou
+
+```{python}
+print(df_resultat_Parakou)
+```
+
+## Représentation graphique des erreurs
+
+### Station de Kandi
+
+```{python}
+plt.figure(figsize=(12,6))
+sns.barplot(data=df_resultat_Kandi,
+    x="Méthode",
+    y="MAE",
+    hue="Variable",
+    palette="Set1"
+)
+
+plt.title("Comparaison des MAE de KANDI")
+plt.xticks(rotation=20)
+plt.show()
+```
+
+### Station de Parakou
+
+```{python}
+plt.figure(figsize=(12,6))
+sns.barplot(data=df_resultat_Parakou,
+    x="Méthode",
+    y="MAE",
+    hue="Variable",
+    palette="Set1"
+)
+
+plt.title("Comparaison des MAE de KANDI")
+plt.xticks(rotation=20)
+plt.show()
+```
+
+# Conclusion
+
+Les résultats obtenus montrent que l’interpolation linéaire fournit les meilleures performances sur la majorité des variables météorologiques étudiées.
+
+Cette méthode présente les plus faibles valeurs de MAE et de RMSE pour les stations de Kandi et de Parakou.
+
+Les méthodes basées sur les moyennes et médianes globales présentent des performances moins satisfaisantes, ce qui montre qu’elles ne prennent pas suffisamment en compte la dynamique temporelle des données climatiques.
+
+Cette étude a permis de structurer les données météorologiques, d’analyser les valeurs manquantes et de comparer plusieurs méthodes d’imputation.
+
+l’interpolation linéaire sera utilisée dans la suite du projet pour le prétraitement des données avant l’analyse exploratoire et la modélisation prédictive.
+
+# Prétaitement final des données avec la méthode d’interpolation linéaire
+```{python}
+Kandi_final = methode_interpo(Kandi, liste_variable_marquante_Kandi)    
+Parakou_final = methode_interpo(Parakou, liste_variable_marquante_Parakou)
+
+Kandi_final.to_csv("data/Kandi_final.csv", index=False)
+Parakou_final.to_csv("data/Parakou_final.csv", index=False)    
+print(Kandi_final.isnull().sum()[0<Kandi_final.isnull().sum()]) 
+print(Parakou_final.isnull().sum()[0<Parakou_final.isnull().sum()])
+```

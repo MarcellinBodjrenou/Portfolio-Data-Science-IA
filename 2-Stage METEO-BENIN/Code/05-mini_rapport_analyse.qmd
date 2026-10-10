@@ -1,0 +1,180 @@
+---
+title: "Analyse exploratoire des données météorologiques"
+author: "BODJRENOU Marcellin & AKODOHOU Ginette"
+format:
+    pdf:
+        toc: true
+        number-sections: true
+        colorlinks: true
+        geometry:
+          - top=3cm
+          - bottom=3cm
+          - left=1cm
+          - right=1cm
+        include-in-header:
+          text: |
+            \usepackage{etoolbox}
+            \apptocmd{\tableofcontents}{\clearpage}{}{}
+execute: 
+  echo: false
+  warning: false
+  message: false
+---
+
+# Introduction
+
+Dans le cadre de ce mini-rapport, nous allons effectuer une analyse exploratoire sur nos données météorologiques des stations de Kandi et de Parakou de 2015 à 2025, déjà traitées. L’objectif de cette analyse est de mieux comprendre les tendances et les relations entre les différentes variables météorologiques, afin de déterminer les anomalies et les modèles qui pourraient être utilisés dans la prévision pluviométrique. Nous allons utiliser des techniques de visualisation et des statistiques pour explorer les données et en tirer des conclusions significatives.
+
+# Analyse des données météorologiques
+
+## Description des données
+Voilà, de façon générale, la description de nos données météorologiques.
+```{python}
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+import seaborn as sns
+
+Kandi=pd.read_csv("data/Kandi_final.csv")
+Parakou=pd.read_csv("data/Parakou_final.csv")
+liste_var=["Pression","Temperature Maximal","Temperature Minimal","Humidite","Pluie"]
+liste_var_vrai=["Pression","Temperature_Max","Temperature_Min","Humidite","Pluviometrie"]
+
+diction={"Variables":liste_var,"Moyenne K":Kandi[liste_var_vrai].mean().values,"Moyenne P":Parakou[liste_var_vrai].mean().values,"Mediane K":Kandi[liste_var_vrai].median().values,"Mediane P":Parakou[liste_var_vrai].median().values,"Ecart-type K":Kandi[liste_var_vrai].std().values,"Ecart-type P":Parakou[liste_var_vrai].std().values}
+
+pd.DataFrame(diction).set_index("Variables")
+```
+
+Avec ce tableau, nous pouvons observer les moyennes, les médianes et les écarts-types des deux stations pour la pression, la température maximale et minimale, l'humidité ainsi que la pluviométrie.
+
+Premièrement, nous pouvons constater qu'il y a globalement plus de pluie à Parakou qu'à Kandi de 2015 à 2025. De plus, il fait plus chaud à Kandi qu'à Parakou. En effet, la pression, la température (surtout minimale) et l'humidité sont plus stables à Parakou qu'à Kandi. Par contre, la pluviométrie est moins stable à Parakou qu'à Kandi. Ce qui n'est pas normal, et cela suggère que la pluie dépend de phénomènes climatiques plus complexes et non uniquement de la stabilité des variables étudiées.
+
+De plus, on constate que la moyenne des pluies est supérieure à la médiane, aussi bien pour Kandi que pour Parakou. Il y a donc de grandes valeurs extrêmes pour la pluie, ce qui prouve l'existence de fortes pluies rares et imprévues. Enfin, Parakou est globalement plus humide que Kandi de 2015 à 2025.
+
+Dans la suite, nous allons approfondir notre analyse pour mieux comprendre ces phénomènes.
+
+## Distribution de la pluie 
+Dans cette section, nous allons analyser la distribution de la pluie à Kandi et à Parakou. Nous allons utiliser des histogrammes et des courbes de densité pour visualiser la distribution de la pluviométrie dans les deux stations. Cela nous permettra de mieux comprendre les tendances et les variations de la pluie dans ces deux régions.
+
+```{python}
+figure,axes=plt.subplots(2,2,figsize=(15,10),dpi=120)
+axes[0,0].hist(Kandi["Pluviometrie"],bins=30)
+axes[0,0].set_title("Distribution de la pluie à Kandi")
+axes[0,0].set_xlabel("Pluie (mm)")
+axes[0,0].set_ylabel("Fréquence")
+sns.kdeplot(Kandi.Pluviometrie,shade=True,label="Kandi",color="red",ax=axes[0,1]) 
+axes[0,1].set_title("Densité de la pluie à Kandi")
+axes[0,1].set_xlabel("Pluie (mm)")
+axes[0,1].set_ylabel("Densité")
+axes[1,0].hist(Parakou["Pluviometrie"],bins=30,density=True)
+axes[1,0].set_title("Distribution de la pluie à Parakou")
+axes[1,0].set_xlabel("Pluie (mm)")
+axes[1,0].set_ylabel("Fréquence")
+sns.kdeplot(Parakou.Pluviometrie,shade=True,label="Parakou",color="red",ax=axes[1,1]) 
+axes[1,1].set_title("Densité de la pluie à Parakou")
+axes[1,1].set_xlabel("Pluie (mm)")
+axes[1,1].set_ylabel("Densité")
+plt.tight_layout()
+plt.show();
+```
+
+D'abord, on constate que les deux stations ont une distribution de la pluie très similaire. De plus, il semble qu'il ne pleut pas souvent dans les stations. Ce qui est normal, car les fortes pluies sont généralement rares, ce qui explique la grande différence entre la moyenne et la médiane.
+
+En effet, la distribution de la pluie à Parakou est plus étalée que celle de Kandi, ce qui suggère que les fortes pluies sont plus fréquentes à Parakou qu'à Kandi. Enfin, on constate que la distribution de la pluie à Kandi est plus concentrée autour de zéro que celle de Parakou, ce qui suggère que les jours sans pluie sont plus fréquents à Kandi qu'à Parakou.
+
+## Variation de la pluie au fil du mois
+
+Cette section consiste à déterminer en détail la relation entre la pluie et les mois dans les deux stations. Nous allons utiliser des graphiques de type heatmap pour visualiser la moyenne de la pluviométrie pour chaque mois de chaque année dans les deux stations. Cela nous permettra de mieux comprendre les tendances saisonnières de la pluie dans ces deux régions.
+
+```{python}
+pivot_Kandi = Kandi.pivot_table(
+    values="Pluviometrie",
+    index="annee",
+    columns="mois"
+).sort_values(by="annee",ascending=False)
+
+pivot_Parakou = Parakou.pivot_table(
+    values="Pluviometrie",
+    index="annee",
+    columns="mois"
+).sort_values(by="annee",ascending=False)
+pivot_Kandi
+figure,axes=plt.subplots(1,2,figsize=(22,12),dpi=120)
+sns.heatmap(pivot_Kandi,annot=True,ax=axes[0])
+axes[0].set_title("Moyenne de la pluie par mois et par année à Kandi")
+sns.heatmap(pivot_Parakou,annot=True,ax=axes[1])
+axes[1].set_title("Moyenne de la pluie par mois et par année à Parakou")
+```
+
+On constate que dans les deux stations, la pluie est plus abondante entre le mois mai et le mois octobre. Ce qui correspond à la saison des pluies dans les deux régions. De plus, les mois de juillet, aoûte et septembre sont les plus pluvieux dans une année des deux stations. En effet, en Janvier et decembre à Kandi, il n'a eu jamais de pluis. Les fortes pluies ont souvent eu lieu dans le mois de aoûte. Le graphe ci-dessous nous confirme bien que le mois d'aoûte est le mois le plus pluvieux dans les deux stations, surtout à Kandi.
+
+```{python}
+plt.figure(figsize=(10,6),dpi=120)
+sns.lineplot(x=Kandi.groupby(["mois"])["Pluviometrie"].mean().index,y=Kandi.groupby(["mois"])["Pluviometrie"].mean().values,label="Kandi")
+sns.lineplot(x=Parakou.groupby(["mois"])["Pluviometrie"].mean().index,y=Parakou.groupby(["mois"])["Pluviometrie"].mean().values,label="Parakou")
+plt.title(f"Evolution de la pluie par mois en moyenne de Kandi et Parakou de 2015 à 2025")
+plt.xlabel("Mois")
+plt.ylabel("Pluie (mm)")
+plt.legend()
+plt.grid();
+```
+
+## Corrélation entre les variables climatiques 
+
+Dans cette section, nous allons analyser la corrélation entre les différentes variables climatiques dans les deux stations. Nous allons utiliser des matrices de corrélation et des graphiques de dispersion pour visualiser les relations entre les variables telles que la pression, la température maximale et minimale, l'humidité et la pluviométrie. Cela nous permettra de mieux comprendre comment ces variables interagissent entre elles et comment elles peuvent influencer la pluie dans ces deux régions.
+
+```{python}
+corr_Kandi=Kandi.corr(numeric_only=True)
+corr_Parakou=Parakou.corr(numeric_only=True)
+fig,axes=plt.subplots(1,2,figsize=(20,10),dpi=120)
+sns.heatmap(corr_Kandi,annot=True,ax=axes[0])
+axes[0].set_title("Corrélation entre les varibles climatoques à Kandi")
+sns.heatmap(corr_Parakou,annot=True,ax=axes[1])
+axes[1].set_title("Corrélation entre les varibles climatoques à Parakou")
+```
+
+On constate que la pluviométrie est positivement corrélée avec l’humidité dans les deux stations. Ce qui montre que les jours les plus humides sont généralement ceux où il y a plus de pluie.
+
+De plus, la pluviométrie est négativement corrélée avec la pression dans les deux stations. Ce qui suggère que les jours de forte pluie sont généralement associés à une pression atmosphérique plus basse.
+
+Enfin, la température maximale est négativement corrélée avec la pluviométrie dans les deux stations. Ce qui suggère que les jours les plus froids sont généralement ceux où il y a plus de pluie. Ce qui est normal, car lorsqu’il pleut, la température est souvent plus basse. 
+
+## Observation des valeurs extrême 
+```{python}
+figure,axes=plt.subplots(3,2,figsize=(20,10),dpi=120)
+sns.boxplot(Kandi,x="mois",y="Pluviometrie",palette="Set2",ax=axes[0,0])
+sns.boxplot(Parakou,x="mois",y="Pluviometrie",palette="Set2",ax=axes[0,1])
+sns.boxplot(Kandi,x="mois",y="Temperature_Max",palette="Set2",ax=axes[1,0])
+sns.boxplot(Parakou,x="mois",y="Temperature_Max",palette="Set2",ax=axes[1,1])
+sns.boxplot(Kandi,x="mois",y="Humidite",palette="Set2",ax=axes[2,0])
+sns.boxplot(Parakou,x="mois",y="Humidite",palette="Set2",ax=axes[2,1])
+```
+
+n constate une nouvelle fois que les mois de juillet, août et septembre sont les plus pluvieux dans les deux stations. À cette période, la température maximale diminue et l’humidité augmente.
+
+Ce qui confirme que les jours les plus froids et les plus humides sont généralement ceux où il y a le plus de pluie.
+
+De plus, les événements de fortes pluies sont plus fréquents à Parakou qu’à Kandi, et ces fortes pluies sont plus fréquentes durant les mois de juillet, août et septembre que durant les autres mois de l’année.
+
+## Stationnarité de la pluie
+
+Dans cette section, nous allons vérifier la stationnarité de la pluviométrie dans les deux stations. Voici un tableau récapitulatif des tests de stationnarité pour la pluviométrie à Kandi et à Parakou.
+```{python}
+from statsmodels.tsa.stattools import adfuller
+
+resultat_Kandi = adfuller(
+    Kandi["Pluviometrie"]
+)
+
+resultat_Parakou = adfuller(
+    Parakou["Pluviometrie"]
+)
+
+pd.DataFrame({"Kandi":resultat_Kandi[:2],"Parakou":resultat_Parakou[:2]},index=["ADF","P-value"])
+```
+
+Dans les deux stations, la p-value est inférieure à 0,05. Et donc, la pluviométrie est stationnaire dans les deux stations. Ce qui suggère que les propriétés statistiques de la pluviométrie ne changent pas énormément au fil du temps dans les deux stations. Par conséquent, nous pouvons utiliser des modèles de séries temporelles, surtout le modèle ARIMA, pour prévoir la pluviométrie dans les deux stations.
+
+# Conclusion
+
+Dans ce mini-rapport, nous avons effectué une analyse exploratoire des données météorologiques des stations de Kandi et de Parakou de 2015 à 2025. Nous avons observé que la pluviométrie est plus abondante à Parakou qu'à Kandi, et que les mois de juillet, aoûte et septembre sont les plus pluvieux dans une année des deux stations. De plus, nous avons constaté que la pluviométrie est positivement corrélée avec l'humidité et négativement corrélée avec la pression et la température maximale dans les deux stations. Enfin, nous avons vérifié que la pluviométrie est stationnaire dans les deux stations, ce qui suggère que nous pouvons utiliser des modèles de séries temporelles pour prévoir la pluviométrie dans ces deux régions.

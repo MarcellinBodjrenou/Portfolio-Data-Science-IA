@@ -1,0 +1,172 @@
+---
+title: "Analyse des données"
+format:
+  pdf:
+    toc: true
+    number-sections: true
+    colorlinks: true
+    geometry:
+          - top=3cm
+          - bottom=3cm
+          - left=1cm
+          - right=1cm
+jupyter: python3
+execute: 
+  echo: false
+  warning: false
+  message: false
+---
+
+\newpage
+
+```{python}
+import numpy as np
+
+import pandas as pd
+
+from statsmodels.tsa.stattools import adfuller
+from statsmodels.tsa.seasonal import seasonal_decompose
+from statsmodels.graphics.tsaplots import plot_acf
+
+import matplotlib.pyplot as plt
+
+import seaborn as sns
+```
+
+# Importation et aperçu du jeu de données
+
+```{python}
+data=pd.read_excel("Data//donnee_debit_trait.xlsx")
+data.head()
+```
+
+## Informations générales sur le jeu de données
+
+```{python}
+data.info()
+```
+
+Notre jeu de données contient 11688 observations et 2 colonnes : Date et Valeur, qui représente le débit.
+
+## Statistiques descriptives
+
+```{python}
+data.describe()
+```
+
+On voit que les valeurs minimale et maximale du débit sont respectivement de 0.6 et 1064. La moyenne (199.24) étant très éloignée de la médiane (28.7), cela confirme la présence de valeurs extrêmes, autrement dit la présence d'événements rares.
+
+## Analyse de la distribution
+
+```{python}
+fig, axes=plt.subplots(1,2)
+axes[0].hist(data.Valeur)
+axes[0].set_xlabel("Débit")
+axes[0].set_title("Distribution du débit")
+sns.kdeplot(data.Valeur,ax=axes[1])
+axes[1].set_xlabel("Débit")
+axes[1].set_title("Densité du débit")
+plt.tight_layout()
+```
+
+On voit une distribution asymétrique à gauche (la moyenne très supérieure à la médiane confirme cette asymétrie). La majorité des observations se concentre sur des valeurs d'alerte normale, tandis qu'une proportion plus faible d'observations présente des valeurs d'alerte modérée et élevée. La densité présente également une concentration secondaire dans la zone des valeurs d'alerte extrême, de 1992 à 2023. Ce qui confirme bien l'importance de la réalisation de ce projet.
+
+# Débit moyen par année et par mois
+
+```{python}
+df = data.copy()
+df["Annee"] = df["Date"].dt.year
+df["Mois"] = df["Date"].dt.month
+pivot =df.pivot_table(values="Valeur",index="Annee",columns="Mois",aggfunc="mean")
+plt.figure(figsize=(10, 8))
+sns.heatmap(pivot, cmap="viridis")
+plt.title("Débit par année et mois")
+plt.xlabel("Mois")
+plt.ylabel("Année")
+plt.show()
+```
+
+Cette heatmap nous montre que les mois d'août, septembre et octobre constituent les mois à surveiller pour un risque élevé et extrême. Le modèle choisi doit donc être capable de surveiller particulièrement ces mois. Les autres mois ne présentent quant à eux que peu de risque. On peut donc envisager d'entraîner notre modèle sur *les données de ces trois mois seulement*.
+
+# Analyse des valeurs extrêmes
+
+## Boxplot global du débit
+
+```{python}
+plt.figure(figsize=(10,6),dpi=120)
+sns.boxplot(data,y="Valeur",palette="Set2")
+plt.title("Boxplot du débit")
+plt.ylabel("Débit");
+```
+
+## Boxplot du débit par mois
+
+```{python}
+sns.boxplot(data,x=data.Date.dt.month,y="Valeur",palette="Set2")
+plt.title("Boxplot du débit par mois")
+plt.xlabel("Mois")
+plt.ylabel("Débit")
+plt.show()
+```
+
+Ce boxplot par mois confirme à nouveau l'importance des mois d'août, septembre et octobre dans cette prédiction. Le mois de septembre est particulier, car les valeurs faibles de débit y apparaissent très rarement : sur la période 1992-2023, le débit est généralement élevé et il est très rare qu'il soit bas. C'est donc un mois à surveiller par avance par la population, sans oublier les mois d'août et d'octobre.
+
+# Évolution mensuelle du débit par année
+
+```{python}
+monthly = df.groupby(["Annee", "Mois"])["Valeur"].mean().reset_index()
+monthly["Mois_label"] = monthly["Mois"].astype(int)
+
+mois_nom = ["Janvier", "Février", "Mars", "Avril", "Mai", "Juin",
+            "Juillet", "Août", "Septembre", "Octobre", "Novembre", "Décembre"]
+
+plt.figure(figsize=(14, 10))
+colors = plt.cm.tab10.colors
+for i, (annee, grp) in enumerate(monthly.groupby("Annee")):
+    plt.plot(
+        grp["Mois_label"],
+        grp["Valeur"],
+        marker="o",
+        linewidth=2.2,
+        markersize=6,
+        color=colors[i % len(colors)],
+        label=f"Année {annee}"
+    )
+
+plt.xticks(range(1, 13), mois_nom, fontsize=14)
+plt.xlabel("Mois", fontsize=18)
+plt.ylabel("Débit moyen", fontsize=18)
+plt.title("Évolution mensuelle du débit par année", fontsize=18)
+plt.legend(title="Année", loc="upper center", bbox_to_anchor=(0.5, -0.12), ncol=5, frameon=False, fontsize=14)
+plt.grid(True, alpha=0.3)
+plt.tight_layout();
+```
+
+On voit que les années ne suivent pas toutes la même distribution, certaines années étant particulières. Parmi ces années, il y en a une qui rejette notre hypothèse d'entraîner et de prédire uniquement sur les mois d'août, septembre et octobre. Ce graphe montre donc qu'il est nécessaire de tenir compte de toutes les mois. Il est toutefois peu probable qu'un modèle tenant compte de la saisonnalité (comme SARIMA) fonctionne bien — ce n'est qu'une hypothèse.
+
+La question qui se pose donc est : existe-t-il une relation, en termes de corrélation, entre le débit d'aujourd'hui et celui d'un éventuel jour n précédent ? Si oui, quel est le n optimal, le meilleur ? Ce sera l'objectif du graphe qui va suivre.
+
+# Autocorrélation du débit
+
+```{python}
+plot_acf(data["Valeur"],lags=30,title="ACF du débit",color="red")
+plt.show()
+```
+
+L'analyse de la fonction d'autocorrélation du débit journalier révèle une forte dépendance temporelle. Les autocorrélations sont élevées pour les premiers retards et décroissent progressivement, tout en restant significatives jusqu'à 30 jours. Cette décroissance lente indique que les observations de débit successives sont fortement dépendantes à court terme et présentent une mémoire temporelle importante. Les modèles classiques comme les modèles linéaires et les modèles d'arbres peuvent donc être envisagés, à condition de créer au préalable des caractéristiques qui captent cette dépendance.
+
+# Test de stationnarité (ADF)
+
+```{python}
+resultats = adfuller(data["Valeur"])
+
+print("Test ADF")
+print("ADF statistic :", resultats[0])
+print("p-value :", resultats[1])
+```
+
+Étant donné que la p-value est négligeable, on conclut que les données de débit sont stationnaires.
+
+# Conclusion
+
+De tout ce qui précède, il paraît pertinent de tester les modèles *SARIMA*, *Prophet*, ainsi que certains modèles linéaires et d'arbre de décision si possible.

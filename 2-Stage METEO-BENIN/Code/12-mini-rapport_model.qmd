@@ -1,0 +1,232 @@
+---
+title: "Modèle pour la prévision pluviométrique"
+author: "BODJRENOU Marcellin & AKODOHOU Ginette"
+format:
+    pdf:
+        toc: true
+        number-sections: true
+        colorlinks: true
+        geometry:
+          - top=3cm
+          - bottom=3cm
+          - left=1cm
+          - right=1cm
+        include-in-header:
+          text: |
+            \usepackage{etoolbox}
+            \apptocmd{\tableofcontents}{\clearpage}{}{}
+execute: 
+  echo: false
+  warning: false
+  message: false
+---
+
+# Introduction
+
+Ce mini rapport consiste à comparer les modèles ARIMA, SARIMA, SARIMAX, Prophet et XGBoost pour la prévision pluviométrique. Nous allons utiliser les données de précipitations journalière pour évaluer les performances de chaque modèle et déterminer lequel est le plus adapté pour la prévision à long terme. Ces modèles seront comparés en utilsant des graphes et les deux métriques utilisées dans la partie prétaitement pour la comparaison des méthodes d'imputation : le RMSE et le MAE. Tout ces modèles seront entraînés sur les données de 2015 à 2023 et testés sur les données de 2024 à 2025.
+
+# Les modèles
+
+## ARIMA
+
+### Description du modèle ARIMA
+
+Un modèle ARIMA (AutoRagressive Integrated Moving Average) est un modèle de séries temporelles qui décrit une variable observée comme une combinaison linéaire de ses valeurs passées, de ses erreurs passées et d'un éventuel processus de différenciation visant à assurer la stationnarité de la série, afin de réaliser des prévisions futures. Dans notre cas, le modèle ARIMA part du principe que la pluie d'aujoud'hui dépend de la pluie des jours précédents, ainsi que des erreurs de prévision passées. Il contient trois paramètres : p (ordre de l'auto-régression), d (degré de différenciation) et q (ordre de la moyenne mobile). On note souvent ce modèle ARIMA(p,d,q) pour indiquer les valeurs de ces paramètres.
+
+Le paramètre p représente le nombre de termes d'auto-régression dans le modèle. Il indique combien de valeurs passées de la série temporelle sont utilisées pour prédire la valeur actuelle. Par exemple, si p=2, cela signifie que les deux dernières valeurs de la série temporelle sont utilisées pour faire la prévision. 
+
+Le problème avec ARIMA est qu'il impose que la série temporelle soit stationnaire, c'est-à-dire que ses propriétés statistiques ne changent pas au fil du temps. Le paramètre d représente le nombre de différenciations nécessaires pour rendre la série temporelle stationnaire. Par exemple, si d=1, cela signifie que nous devons différencier la série temporelle une fois pour la rendre stationnaire. Mais dans notre cas, la série temporelle de précipitations est stationnaire, donc d=0.
+
+Le paramètre q indique combien de termes de moyenne mobile sont inclus dans le modèle. Il représente le nombre de valeurs passées des erreurs de prévision qui sont utilisées pour prédire la valeur actuelle. Par exemple, si q=1, cela signifie que l'erreur de prévision du jour précédent est utilisée pour faire la prévision du jour actuel.
+
+Dans ce cas, le modèle ARIMA peut être représenté par l'équation suivante :
+
+$Y_t = \alpha_1 Y_{t-1}+\alpha_2 Y_{t-2} + \epsilon_t + \beta_1 \epsilon_{t-1} + c$ (En supposant p=2, d=0 et q=1)
+
+avec :
+
+- $Y_t$ : la valeur de la série temporelle à l'instant t
+
+- $\alpha_1$ et $\alpha_2$ : les coefficients d'auto-régression
+
+- $\epsilon_t$ : l'erreur de prévision à l'instant t
+
+- $\beta_1$ : le coefficient de la moyenne mobile
+
+- $c$ : une constante
+
+### Résultats du modèle ARIMA
+
+Après avoir ajusté le modèle ARIMA à nos données de précipitations, nous avons obtenu les résultats suivants :
+
+**Tableau des résultats du modèle ARIMA**
+
+
+```{python}
+import pandas as pd
+pd.read_csv("data//resultats_arima.csv").set_index("Station").drop(["p","q"],axis=1)
+```
+
+
+**Graphes des résultats du modèle ARIMA **
+
+
+!["ARIMA_Kandi"](Image/Predict_Kandi_Arima.png)
+!["ARIMA_Parakou"](Image/Predict_Parakou_Arima.png)
+
+On constate que le modèle ARIMA est plus performant à Kandi qu'à Parakou. Cela suggère que le modèle ARIMA est plus adapté pour la prévision des précipitations à Kandi qu'à Parakou. Cependant, les performances du modèle ARIMA ne sont pas très satisfaisantes. 
+
+D'après les graphes précédents, on constate que dans la station Kandi, le modèle ARIMA arrive bien à prédire dans les mois de Janvier, Février, Mars, Avril, Mai, Novembre et de Décembre mais n'arrive pas à prédire dans les autres mois. Dans la station Parakou, le modèle ARIMA arrive bien à prédire dans les mois de Janvier, Février, Mars, Avril, Novembre et de Décembre mais n'arrive pas à prédire dans les autres mois.  Et donc, le modèle n'est pas performant dans les mois de saison pluvieuse.  Cela peut être dû pluie à ce que ke modèle ARIMA ne tient pas compte des composantes saisonnières. C'est pourquoi nous allons maintenant explorer le modèle SARIMA, qui prend en compte les composantes saisonnières de la série temporelle.
+
+## SARIMA
+
+### Description du modèle SARIMA
+
+Un modèle SARIMA (Seasonal AutoRegressive Integrated Moving Average) est une extension du modèle ARIMA qui prend en compte les composantes saisonnières d'une série temporelle. Il inclut des termes supplémentaires pour modéliser les effets saisonniers, tels que les variations périodiques qui se produisent à des intervalles réguliers (par exemple, les précipitations qui varient selon les saisons). Le modèle SARIMA est défini par sept paramètres : p, d, q, P, D, Q et m. Les paramètres p, d et q sont les mêmes que ceux du modèle ARIMA, tandis que les paramètres P, D et Q représentent les composantes saisonnières du modèle. Le paramètre m indique la périodicité de la saisonnalité (par exemple, m=12 pour des données mensuelles avec une saisonnalité annuelle).
+
+Pour notre cas, le modèle SARIMA peut être représenté par l'équation suivante :
+
+$Y_t = \alpha_1 Y_{t-1}+\alpha_2 Y_{t-2} + \epsilon_t + \beta_1 \epsilon_{t-1} + \gamma_1 Y_{t-m} + \delta_1 \epsilon_{t-m} + c$ (En supposant p=2, d=0, q=1, P=1, D=0, Q=1 et m=7)
+
+avec :  
+
+- $Y_t$ : la valeur de la série temporelle à l'instant t
+
+- $\alpha_1$ et $\alpha_2$ : les coefficients d'auto-régression
+
+- $\epsilon_t$ : l'erreur de prévision à l'instant t  
+
+- $\beta_1$ : le coefficient de la moyenne mobile
+
+- $\gamma_1$ : le coefficient d'auto-régression saisonnière
+
+- $\delta_1$ : le coefficient de la moyenne mobile saisonnière
+
+- $c$ : une constante
+
+### Résultats du modèle SARIMA
+
+Après avoir ajusté le modèle SARIMA à nos données de précipitations avec m=7, nous avons obtenu les résultats suivants :
+
+**Tableau des résultats du modèle SARIMA**
+
+```{python}
+pd.read_csv("data//resultats_sarima_semestrielle.csv").set_index("Station").drop(["p ","q ","P ","Q"],axis=1)
+```
+
+**Graphes des résultats du modèle SARIMA **
+
+
+!["SARIMA_Kandi"](Image\Predict_Kandi_Sarima.png)
+!["SARIMA_Parakou"](Image\Predict_Parakou_Sarima.png)
+
+Bien que SARIMA prenne en compte une composante saisonnière, les résultats obtenus ne montrent pas d'amélioration par rapport à ARIMA. Cela peut indiquer que la saisonnalité hebdomadaire (m=7) n'est pas suffisamment marquée dans les données étudiées.
+
+La question qui se pose est de savoir si l'ajout de variables exogènes (variables explicatives) dans le modèle SARIMA peut améliorer les performances du modèle. C'est pourquoi nous allons maintenant explorer le modèle SARIMAX, qui permet d'inclure des variables exogènes dans la modélisation.
+
+## SARIMAX
+
+### Description du modèle SARIMAX
+
+Un modèle SARIMAX (Seasonal AutoRegressive Integrated Moving Average with eXogenous regressors) est une extension du modèle SARIMA qui permet d'inclure des variables exogènes (variables explicatives) dans la modélisation. Dans notre cas, les variables explicatives seront la température maximale du jour precédent, la température minimale du jour précédent, l'humidité du jour précédent, la pression du jour précédent et la vitesse du vent du jour précédent. Le modèle SARIMAX est défini par les mêmes paramètres que le modèle SARIMA (p, d, q, P, D, Q et m), mais il inclut seulement des coefficients pour les variables exogènes.
+
+### Résultats du modèle SARIMAX
+
+Après avoir ajusté le modèle SARIMAX à nos données de précipitations avec m=7, nous avons obtenu les résultats suivants :
+
+**Tableau des résultats du modèle SARIMAX**
+
+```{python}
+pd.read_csv("data//resultats_sarima_semestrielle_Avec_VE.csv").set_index("Station").drop(["p","q","P","Q"],axis=1)
+```
+
+
+**Graphes des résultats du modèle SARIMAX**
+
+!["SARIMAX_Kandi"](Image/Predict_Kandi_Sarimax.png)
+!["SARIMAX_Parakou"](Image/Predict_Parakou_Sarimax.png)
+
+Apparement, l'ajout des varibles exogènes n'a pas amélioré les performances du modèle SARIMA. Cela peut être dû à plusieurs facteurs, tels que la qualité des données exogènes, la relation entre les variables exogènes et la variable cible (précipitations), ou encore la complexité du modèle. Il est possible que les variables exogènes utilisées ne soient pas suffisamment informatives pour améliorer les prévisions de précipitations, ou que le modèle SARIMAX ne soit pas le meilleur choix pour capturer les relations entre les variables. C'est pourquoi nous allons maintenant explorer le modèle Prophet.
+
+## Prophet
+
+### Description du modèle Prophet
+
+Le model Prophet est un modèle de prévision de séries temporelles développé par Facebook. Il est conçu pour être facile à utiliser et à interpréter, tout en étant capable de gérer des données avec des tendances non linéaires, des saisonnalités multiples et des jours fériés. Le modèle Prophet décompose une série temporelle en trois composantes principales : la tendance, la saisonnalité et les jours fériés. La tendance capture les changements à long terme dans la série temporelle, la saisonnalité capture les variations périodiques (par exemple, les précipitations qui varient selon les saisons), et les jours fériés capturent les effets spécifiques liés à des dates particulières. Le modèle Prophet utilise une approche de régression pour modéliser ces composantes, ce qui permet de faire des prévisions futures en extrapolant les tendances et les saisonnalités identifiées dans les données historiques. Le modèle Prophet est particulièrement efficace pour les séries temporelles avec des tendances non linéaires et des saisonnalités multiples, ce qui en fait un choix populaire pour la prévision de données telles que les précipitations.
+
+### Résultats du modèle Prophet
+
+Après avoir ajusté le modèle Prophet à nos données de précipitations, nous avons obtenu les résultats suivants :
+
+
+**Tableau des résultats du modèle Prophet**
+
+```{python}
+pd.read_csv("data//resultats_prophet_avec_VE.csv").set_index("Station")
+```
+
+
+**Graphes des résultats du modèle Prophet**
+
+!["Prophet_Kandi"](Image/Predict_Kandi_Prophetx.png)
+!["Prophet_Parakou"](Image/Predict_Parakou_Prophetx.png)
+
+On constate que le modèle Prophet est plus performant que les modèles ARIMA, SARIMA et SARIMAX, surtout à Kandi et corrige partiellement les erreurs des autres modèles dans les mois de saisons de pluviométrie. Cela suggère que le modèle Prophet est plus adapté pour la prévision des précipitations à Kandi et à Parakou que les autres modèles. Le modèle Prophet est capable de capturer les tendances non linéaires et les saisonnalités multiples présentes dans les données de précipitations, ce qui peut expliquer ses meilleures performances par rapport aux modèles ARIMA, SARIMA et SARIMAX. Cependant, nous allons maintenant explorer le modèle XGBoost.
+
+## XGBoost
+
+### Description du modèle XGBoost
+
+Le model XGBoost (eXtreme Gradient Boosting) est un algorithme de machine learning basé sur un ensemble d'arbres de décision construits séquentiellement. Chaque nouvel arbre cherche à corriger les erreurs commises par les arbres précédents. Pour la prévision pluviométrique, le modèle utilise des variables explicatives telles que les valeurs retardées de la pluie, les moyennes mobiles et les variables météorologiques afin de prédire les précipitations futures. Le modèle XGBoost est particulièrement efficace pour capturer les relations non linéaires et les interactions complexes entre les variables, ce qui peut être bénéfique pour la prévision des précipitations, qui sont souvent influencées par de nombreux facteurs météorologiques. De plus, XGBoost intègre des mécanismes de régularisation pour éviter le surapprentissage, ce qui peut améliorer la généralisation du modèle sur de nouvelles données.
+
+### Résultats du modèle XGBoost
+
+Les hyperparamètres du modèle XGBoost ont été optimisés à l'aide de la validation croisée temporelle (TimeSeriesSplit) combinée à une recherche par grille (GridSearchCV), permettant d'identifier la combinaison de paramètres minimisant l'erreur de prévision. Nous avons obtenu les résultats suivants :
+
+
+**Tableau des résultats du modèle XGBoost**
+```{python}
+pd.read_csv("data//resultats_xgboost.csv").set_index("Station")
+```
+
+
+**Graphes des résultats du modèle XGBoost**
+
+![XGBoost_Kandi](Image/Predict_Kandi_Xgboost.png)
+![XGBoost_Parakou](Image/Predict_Parakou_Xgboost.png)
+
+XGBoost a montré des performances comparables à celles du modèle Prophet, avec une légère amélioration à Parakou. Cela suggère que le modèle XGBoost est également adapté pour la prévision des précipitations à Kandi et à Parakou. Le modèle XGBoost est capable de capturer les tendances non linéaires et les interactions complexes entre les variables, ce qui peut expliquer ses bonnes performances par rapport aux autres modèles. 
+
+# Conclusion
+
+Voilà un tableau récapitulatif des performances de tous les modèles à Kandi et à Parakou :
+
+```{python}
+arima=pd.read_csv("data//resultats_arima.csv")
+arima["Model"]="ARIMA"
+sarima=pd.read_csv("data//resultats_sarima_semestrielle.csv")
+sarima["Model"]="SARIMA"
+sarimax=pd.read_csv("data//resultats_sarima_semestrielle_Avec_VE.csv")
+sarimax["Model"]="SARIMAX"
+prophet=pd.read_csv("data//resultats_prophet_avec_VE.csv")
+prophet["Model"]="Prophet"
+xgboost=pd.read_csv("data//resultats_xgboost.csv")
+xgboost["Model"]="XGBoost"
+resultats=pd.concat([arima[["Model","Station","MAE","RMSE"]],sarima[["Model","Station","MAE","RMSE"]],sarimax[["Model","Station","MAE","RMSE"]],prophet[["Model","Station","MAE","RMSE"]],xgboost[["Model","Station","MAE","RMSE"]]],axis=0)
+resultats.set_index("Station")
+print("                               __________________KANDI___________________")
+resultats[resultats["Station"]=="Kandi"].sort_values(by=["MAE","RMSE"],ascending=True).drop(["Station"],axis=1).set_index(["Model"])
+```
+
+```{python}
+print("                               __________________PARAKOU___________________")
+resultats[resultats["Station"]=="Parakou"].sort_values(by=["MAE","RMSE"],ascending=True).drop(["Station"],axis=1).set_index(["Model"])
+```
+
+Les résultats montrent qu'aucun modèle n'est systématiquement supérieur sur toutes les stations. À Kandi, Prophet présente les meilleures performances en termes de MAE et de RMSE, tandis qu'à Parakou XGBoost obtient le meilleur compromis entre précision et capacité de généralisation. Mais pour un bon résultats au niveau des mois de saison pluvieuse, le mieux est d'utiliser le modèle XGBoost dans les deux stations.
+
+Etant donné que les modèles Prophet et XGBoost ont montré des performances comparables, le choix entre les deux peut dépendre de facteurs tels que la facilité d'interprétation du modèle, la disponibilité des données exogènes et les ressources informatiques disponibles pour l'entraînement du modèle. En conclusion, le modèle XGBoost semble être le plus adapté pour la prévision des précipitations à Kandi et à Parakou, en particulier pendant les mois de saison pluvieuse, grâce à sa capacité à capturer les relations non linéaires et les interactions complexes entre les variables météorologiques.
+
+La performance de XGBoost peut nous faire recours à certains modèles de Machine Learning, tels que LightGBM, CatBoost	Extra Trees, Random Forest etc... pour voir si on peut faire mieux que XGBoost. Mais on peut aussi faire du stacking pour combiner les prévisions de plusieurs modèles afin d'améliorer la précision globale des prévisions. Par exemple, on pourrait combiner les prévisions de Prophet et XGBoost en utilisant une technique de stacking, où les prévisions de chaque modèle sont utilisées comme entrées pour un modèle de méta-apprentissage (par exemple, une régression linéaire) qui apprend à pondérer les prévisions de chaque modèle pour produire une prévision finale plus précise. 
+
+On peut s'arrêter là pour ce mini rapport.

@@ -1,0 +1,828 @@
+\documentclass[a4paper,12pt]{report}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[french]{babel}
+\usepackage{amsmath}
+\usepackage{amsfonts}
+\usepackage{amsthm}
+\usepackage{amssymb}
+\usepackage{mathrsfs}
+\usepackage{lmodern}
+\usepackage[right=2.5cm,left=2.5cm,bottom=3cm,top=2.5cm]{geometry}
+\usepackage{fancyhdr}
+\pagestyle{fancy}
+\lfoot{\textit{@UNSTIM/FAST-NATITINGOU 2025-2026}}
+\cfoot{$\textit{\thepage}$}
+\rfoot{ \textit{Réalisé par BODJRENOU Marcellin V. }}
+\lhead{}
+\chead{\textit{\rightmark}}
+\rhead{}
+\usepackage{graphicx}
+\newtheorem{propo}{\underline{Proposition}}[chapter]
+\newtheorem{exrc}{\underline{Exercice}}[chapter]
+\newtheorem{exe}{Exemple}
+\theoremstyle{definition}
+\newtheorem{defi}{\underline{Définition}}[chapter]
+\newtheorem*{remar}{\underline{Remarque}}
+\newtheorem{theo}{\underline{Théorème}}[chapter]
+\newtheorem*{demo}{Démonstration}
+\usepackage{tikz}
+\usepackage{tcolorbox}
+\usepackage{mathtools}
+\usepackage{listings}
+\usepackage{color}
+\tcbuselibrary{breakable}
+\usepackage{enumitem}
+\usepackage{pgfplots}
+\usepackage{circuitikz}
+\usepackage{subcaption}
+\usepackage{multicol}
+\usepackage{newtxtext,newtxmath}
+\usepackage{setspace}
+\setstretch{1.3}
+\usepackage{acronym}
+\usepackage{chngcntr}
+\usepackage{titlesec}
+\usepackage{array}
+\usepackage{tcolorbox}
+\usepackage{xcolor}
+\usepackage{tabularx}
+\makeatletter
+\renewcommand{\thesection}{\arabic{section}}
+\makeatother
+\usepackage{longtable}
+\usepackage{booktabs}
+\usepackage{array}
+
+\usepackage{etoolbox}
+\AtBeginEnvironment{longtable}{\tiny}
+
+\usepackage{graphicx}
+\providecommand{\pandocbounded}[1]{#1}
+\usepackage{float}
+\usepackage{caption}
+\usepackage{subcaption}
+\DeclareCaptionType{none}
+\providecommand{\tightlist}{
+	\setlength{\itemsep}{0pt}
+	\setlength{\parskip}{0pt}}
+\setcounter{secnumdepth}{3}
+\begin{document}
+	\pagenumbering{roman} % chiffres romains minuscules
+	% =========================
+	% Pages de garde
+	% =========================
+	\begin{titlepage}
+		
+		\begin{tabular*}{\textwidth}{@{\extracolsep{\fill}} 
+				m{1cm} 
+				m{0.80\textwidth} 
+				m{2.8cm}}
+			
+			% Logo gauche
+			\centering
+			\hspace{-2.2cm}
+			\includegraphics[width=2.8cm]{logo_gauche.png}
+			
+			&
+			
+			% Texte central
+			\centering
+			\setstretch{0.8}
+			
+			\textbf{REPUBLIQUE DU BENIN\\}
+			=-=-=-=-=-=
+			
+			\textbf{Ministère de l'Enseignement Supérieur et de la Recherche Scientifique}
+			
+			\color{blue}
+			=-=-=-=-=-=
+			
+			\textbf{UNIVERSITE NATIONALE DES SCIENCES, TECHNOLOGIES, INGENIERIE ET MATHEMATIQUES\\}
+			\color{brown}
+			=-=-=-=-=-=
+			
+			\textbf{FACULTE DES SCIENCES ET TECHNIQUES DE NATITINGOU}
+			
+			&
+			
+			% Logo droit
+			\centering
+			\includegraphics[width=2.8cm]{logo_droite.png}
+			
+		\end{tabular*}
+		{\centering
+			\textcolor{blue}{\noindent\rule{16.6cm}{2.5pt}}}
+		
+		\begin{center}
+			\textbf{N° attribué par la bibliothèque \\
+				/ \_/  \_/ \_/ \_/ \_/ \_/ \_/ \_/ \_/ \_/ \_/ \_/ \_/ \_/ \_/ \_/}
+		\end{center}
+		
+		\begin{center}
+			\textbf{\Large RAPPORT DE STAGE ACADEMIQUE} 
+		\end{center}
+		\textcolor{red}{\underline{Domaine:}} Science et technologie.\\		
+		\textcolor{red}{\underline{Mention:}} Sciences et Techniques.\\	
+		\textcolor{red}{\underline{Spécialité:}} Mathématiques - Informatique.
+		\begin{center}
+			\vspace{0.4cm}
+			\fbox{\begin{minipage}[c][4.5cm][c]{0.9\textwidth}
+					\centering
+					\textbf{{\LARGE \textcolor{blue}{THÈME}\\
+							\vspace{0.4cm} 
+							Modèle prédictif basé sur l'intelligence artificielle pour la prévision des pluies au Bénin : cas de Kandi et de Parakou}}
+			\end{minipage}}
+			\phantom{fjfjfjfjjffjfjjf}\\
+			\underline{\textbf{Présenté par}}:	\\
+			\vspace{0.15cm}
+			BODJRENOU Marcellin Vignon \\
+			\vspace{0.4cm}
+			\textbf{\underline{Dirigé par}}\\
+			\vspace{0.5cm}
+			\begin{minipage}[t]{0.45\textwidth}
+				\fbox{
+					\begin{minipage}[c][3cm][c]{0.9\textwidth}
+						\centering
+						\textbf{Tuteur : \\ \vspace{0.1cm}	Dr. ELEGBEDE Chabi Fabrice} 
+						Enseignant - Chercheur \\ FAST Natingou
+				\end{minipage}}
+			\end{minipage}
+			\hfill
+			\begin{minipage}[t]{0.45\textwidth}
+				\fbox{
+					\begin{minipage}[c][3cm][c]{0.9\textwidth}
+						\centering
+						\textbf{Maître stage : \\ \vspace{0.1cm}	Mr. OUSSOU} Dagbénagni Djidjoho Gad \\ 
+						DSI METEO-BENIN
+				\end{minipage}}
+			\end{minipage}\\
+			\vfill
+			Année accadémique : 2025 - 2026
+		\end{center}
+	\end{titlepage}
+	
+	% =========================
+	% Pages liminaires
+	% =========================
+	
+	% Resumé francais
+	\phantom{}
+	\newpage
+	
+	\begin{center}
+		\colorbox{gray!0}{\rule{\textwidth}{0.005cm}}
+		{\Huge\textbf{\textit{Resumé}}}
+		\vspace{1cm}
+		\colorbox{gray!0}{\rule{\textwidth}{0.005cm}}
+	\end{center}
+	Dans le cadre de ma formation en Licence en Mathématiques et Informatique à la Faculté des Sciences et Techniques (FAST) de Natitingou, j'ai effectué un stage académique à la Météo-Bénin. Au cours de ce stage, j'ai mis en pratique les connaissances acquises durant ma formation à travers la réalisation d'un projet. Ce projet vise à développer un modèle de prévision capable de prédire de la pluviométrie dans deux stations météorologiques : Kandi et Parakou. Face aux défis que représente la variabilité des précipitations pour l'agriculture et d'autres secteurs d'activité, cette étude a pour objectif d'analyser les données météorologiques afin d'identifier les tendances et les anomalies, puis de déterminer le modèle offrant les meilleures performances de prévision pour les deux stations. Cette étude s’appuiera sur les données journalières de la pluviométrie, de la pression atmosphérique, de l’humidité, de la température maximale et minimale ainsi que de la vitesse du vent, couvrant la période de 2015 à 2025. En effet, conscient de l'importance de l'imputation pour une bonne prévision, cinq (05) méthodes d'imputation (moyenne globale, médiane globale, interpolation linéaire, moyenne historique et médiane historique) sont comparées et on constate que l'interpolation linéaire est la méthode qui impute le mieux les valeurs manquantes. Après l'imputation, une analyse exploratoire des données nous a permis à savoir, généralement, que les données de pluviométrie sont stationnaires. il est donc pertinent de tester les modèles ARIMA, SARIMA et SARIMAX. 	Ensuite en comparant les performances des modèles ARIMA, SARIMA, SARIMAX, Prophet et XGBoost, avec les métriques MAE et RMSE (entrainés sur les données de 2015 à 2023 et testés sur les données de 2024 à 2025), on constate que XGBoost est le modèle qui prédit le mieux la pluie, surtout pendant les moments de fortes précipitations. Mais l'inconvénient de l'utilisation de ce modèle est qu'il ne peut pas prédire à longue terme. Ce stage nous a permis de renforcer nos compétences en programmation, en analyse de données et en modélisation statistique. Il nous a également permis d'appliquer des notions théoriques acquises au cours de notre formation, notamment en statistiques et en probabilités, tout en découvrant les réalités du monde professionnel.\\
+	
+	\vspace{0.5cm}
+	\phantom{fjjffcmffffffffffffffffffffffjfffffffffffffffffffffffffjfjfjffjjjjjjjjjjjjjjhhhh} \textbf{Marcellin V. BODJRENOU}
+	\newpage
+	
+	% Resumé anglais
+	
+	\begin{center}
+		\colorbox{gray!0}{\rule{\textwidth}{0.005cm}}
+		{\Huge\textbf{\textit{Summary}}}
+		\vspace{1cm}
+		\colorbox{gray!0}{\rule{\textwidth}{0.005cm}}
+	\end{center}
+	As part of our Bachelor's degree in Mathematics and Computer Science at the Faculty of Science and Technology (FAST) of Natitingou, I completed an academic internship at Météo-Bénin. During this internship, I put into practice the knowledge acquired during my studies through the implementation of a project. This project aims to develop a forecasting model capable of predicting rainfall at two meteorological stations: Kandi and Parakou. Faced with the challenges posed by rainfall variability for agriculture and other sectors of activity, this study aims to analyze meteorological data in order to identify trends and anomalies, and then determine the model providing the best forecasting performance for the two stations. This study is based on daily data of rainfall, atmospheric pressure, humidity, maximum and minimum temperature, as well as wind speed, covering the period from 2015 to 2025. Indeed, aware of the importance of imputation for accurate forecasting, five (05) imputation methods (global mean, global median, linear interpolation, historical mean, and historical median) are compared, and it is observed that linear interpolation is the method that best imputes the missing values. After the imputation, an exploratory data analysis allowed us to determine that, in general, the rainfall data are stationary. It is therefore relevant to test the ARIMA, SARIMA, and SARIMAX models. Then, by comparing the performance of the ARIMA, SARIMA, SARIMAX, Prophet, and XGBoost models using the MAE and RMSE metrics (trained on data from 2015 to 2023 and tested on data from 2024 to 2025), it is observed that XGBoost is the model that best predicts rainfall, especially during periods of heavy precipitation. However, the disadvantage of using this model is that it cannot perform long-term forecasting. This internship enabled us to strengthen our skills in programming, data analysis, and statistical modeling. It also enabled us to apply the theoretical concepts acquired during our studies, particularly in statistics and probability, while discovering the realities of the professional world.	\\
+	
+	\vspace{0.5cm}
+	\phantom{fjjffcmffffffffffffffffffffffjfffffffffffffffffffffffffjfjfjffjjjjjjjjjjjjjjhhhh} \textbf{Marcellin V. BODJRENOU}
+	\newpage
+	
+	% Dédicace Marcellin
+	
+	\begin{center}
+		\colorbox{gray!0}{\rule{\textwidth}{0.005cm}}
+		{\Huge\textbf{\textit{Dédicace}}}
+		\vspace{1cm}
+		\colorbox{gray!0}{\rule{\textwidth}{0.005cm}}
+	\end{center}
+	Je dédie ce travail à :
+	\begin{itemize}[label=$\bigstar$]
+		\item \textbf{Mes parents}, pour leur amour inconditionnel, leur soutien moral et financier tout au long de mes études. Leur confiance en moi a été une source de motivation constante. 
+	\end{itemize}
+	\vspace{0.7cm}
+	\phantom{fjjffcmffffffffffffffffffffffjfffffffffffffffffffffffffjfjfjffjjjjjjjjjjjjjjhhhhhm} \textbf{Marcellin V. BODJRENOU}
+	\newpage
+	% Remerciements
+	
+	\begin{center}
+		\colorbox{gray!0}{\rule{\textwidth}{0.005cm}}
+		{\Huge\textbf{\textit{Remerciements}}}
+		\vspace{1cm}
+		\colorbox{gray!0}{\rule{\textwidth}{0.005cm}}
+	\end{center}
+	\begin{itemize}[label=$\spadesuit$]
+		\item Je rends d’abord grâce à \textbf{Dieu Tout-Puissant} pour la vie, la santé, la sagesse et la force qu’Il m'a accordé tout au long de ce travail. Sans son soutien invisible et constant, rien de tout ceci n’aurait été possible.
+		\item Je tiens ensuite à exprimer ma profonde gratitude à mes encadreurs, Docteur \textbf{Chabi Fabrice ELEGBEDE} et Monsieur \textbf{OUSSOU Gad Dagbénagni Djidjoho}, pour leur soutien indéfectible, leurs conseils précieux et leur patience tout au long de ce projet. Leur expertise et dévouement ont été des sources d’inspiration constantes.
+		\item Je remercie également l’ensemble des enseignants et du personnel de la Faculté des Sciences et Techniques (\textbf{FAST}) pour avoir fourni un environnement académique propice à l’apprentissage et à la recherche. Leur engagement envers l’éducation de qualité a été essentiel pour la réalisation de ce projet.
+		\item Je souhaite exprimer ma reconnaissance envers mes \textbf{collègues étudiants} pour leur camaraderie, leur collaboration et les échanges fructueux que nous avons eus. Leur soutien et leur encouragement ont été d’une grande aide.
+		\item Enfin, j'adresse ma reconnaissance à ma famille, mes amis et toutes les personnes qui, de près ou de loin, ont contribué à la réalisation de ce rapport par leur soutien moral, leurs encouragements et leurs prières.
+	\end{itemize}
+	\vspace{0.5cm}
+	\phantom{fjjffcmffffffffffffffffffffffjfffffffffffffffffffffffffjfjfjffjjjjjjjjjjjjjjhhhh} \textbf{Marcellin V. BODJRENOU}
+	
+	
+	\tableofcontents
+	
+	\newpage
+	
+	\listoftables
+	
+	\newpage
+	
+	\listoffigures
+	
+	\newpage
+	
+	\chapter*{Liste des sigles}
+	
+	\begin{acronym}
+		\acro{FAST :}{Faculté des Sciences et Techniques}
+		\acro{DSI :}{Directeur des Systèmes Informatiques}
+		\acro{DPAF :}{Directeur de la Planification et de l'Administration des Finances}
+		\acro{DCAM :}{Directeur de la Climatologie et des Applications Météorologiques}
+		\acro{CAI :}{Cellule d'Audit Interne}
+		\acro{DPROM :}{Directeur de la Prévision et du Réseau d'Observation Météorologique}
+		\acro{UNSTIM :}{Université Nationale des Sciences, Technologies, Ingenierie et Mathématiques}
+		
+	\end{acronym}
+	
+	\newpage
+	
+	% =========================
+	% Corps du document
+	% =========================
+	
+	\pagenumbering{arabic} % chiffres arabes
+	\setcounter{page}{1}   % commence à 1
+	
+	\part{Présentation générale des structures de formation et de stage}
+	
+	\begin{center}
+		\textbf{{\LARGE Introduction}}
+	\end{center}
+	Toute formation nécessite un terrain d’expérience de tous les savoirs acquis au préalable. Dans le domaine des sciences techniques, c’est encore plus nécessaire pour un enseignant et/ou chercheur en devenir de prendre par un stage académique en vue de renforcer ou du moins, mettre en pratique les connaissances théoriques acquises pour nourrir ses capacités intellectuelles et ses savoir-faire afin d’être qualifié, compétant et apte à accomplir sa noble mission. C’est pour cette raison que, à la fin de notre formation à la Faculté des Sciences et Techniques de Natitingou, nous avons été envoyés à la Direction Nationale de la Météorologie du Bénin (METEO-BENIN) pour notre stage académique sous la tutelle de Mr. OUSSOU Gad Dagbénangni Djidjoho, le Directeur des Systèmes Informatiques (DSI) en service à la METEO-BENIN. Débuté le lundi 18 Mai 2026, ce stage a duré environ un mois au cours duquel nous avons mené des activités d’ordre technique et scientifique. Cette première partie de notre rapport fera une présentation de notre structure de formation, de notre lieu de stage et du bilan des activités menées.
+	\section{Présentation de l’établissement de formation : FAST de Natitingou}
+	\subsection{Situation géographique}
+	La FAST de NATITINGOU est située dans le département de l’Atacora et précisément dans la commune de Natitingou au Nord de la République du Bénin. La commune s’étend sur une superficie de $3045Km^2$, soit 12.8 \% de la superficie totale du département et compte 65 villages	et quartiers de ville répartis dans neuf (09) arrondissements selon la RGPH4 2013. Son relief est de type accidenté, composé surtout de la chaîne de l’Atacora, de plateaux et de collines dont	les vallées se présentent souvent en pente forte. D’une façon générale, la FAST-NATITINGOU est limitée au nord par l’EPP-Ourbouga, au sud à environ 1 Km de la place KABA, à l’EST par la pharmacie EDEN et à l’Ouest à quelques mètres de CFL. Le sol est latéritique et son altitude	est de 1018 de l’altitude Nord et 122 de longitude Est par rapport à la commune de Cotonou.	La faculté est située dans le quartier Ourbouga au bord de la voie inter-État Bénin-Burkina Faso. Il se retrouve au sein de l’Ecole Normale Supérieure de Natitingou.
+	
+	\subsection{La création et l’évolution}
+	La FAST-NATITINGOU est créée par Arrêté N°529/MESRS/CAB/DC/SGM/DRFM/ST-REGIE du 13 octobre 2011 portant création des facultés à caractère spécifique en République du Bénin et a pour mission principale de dispenser des enseignements de qualité en sciences et en techniques, de promouvoir la recherche scientifique et applications, et de contribuer au développement socio-économique du pays. De 2011 à 2016, la FAST-NATITINGOU comportait les filières à savoir : la PC, SVT et la MI. Par contre de 2016 à présent les offres de formations ont été améliorées et elle compte actuellement la MI et la PC.
+	
+	\subsection{Les personnels administratifs et enseignants}
+	La Fast-Natitingou est composé de personnel enseignant et administratifs qui sont regroupé dans le tableau suivant :
+	\begin{table}[h]
+		\centering
+		\begin{tabular}{|l|l|}
+			\hline
+			\textbf{Nom et Prénoms} & \textbf{Fonctions}\\
+			\hline
+			Dr HOUNDJO M.J. Stéphane &  Doyen de la FAST-Natitingou\\
+			\hline
+			Dr FATONDJI Raymond &  Vice-Doyen de la FAST-Natitingou\\
+			\hline
+			M. N’KOUEI D. Marius &  Secrétaire Général d’Entité\\
+			\hline
+			Dr ELEGBEDE Chabi Fabrice & Chef Département de la Mathématique et Informatique\\
+			\hline
+			Dr ADECHINAN A. Joseph & Chef Département de la Physique\\
+			\hline
+			Dr YOVO Franck & Chef Département de la Chimie\\
+			\hline
+			Dr KOUKPEMEDJI A. Audran & Chef Service de la Scolarité et Examen\\
+			\hline
+			Mr TANGAOU Alimi & Comptable de la FAST-Natitingou\\
+			\hline
+			Mr YETONDJI Iyonic & Chef Matériel\\
+			\hline
+			Mme KORAIMOROU Cathoumie & Secrétaire des Services Administratif\\
+			\hline
+			Mr KOUAGRE K. Jean & Assistant des Services Informatique\\
+			\hline
+			Mr TAMOU Chabi & CVA\\
+			\hline
+			Mr ABDOULAYE Moussiliou & Chef Division Scolarité\\
+			\hline
+			Mr BASSONGUI Orousèko & Secrétaire des Services Administratif\\
+			\hline
+		\end{tabular}
+		\caption{Personnels administratifs de la FAST}
+	\end{table}
+	\subsection{Infrastructures, mobiliers et matériels didactiques de la FAST}
+	La Fast-Natitingou dispose de quelques infrastructures, des mobiliers et de matériels didactiques contenus dans le tableau ci-dessous :
+	\begin{table}[h]
+		\centering
+		\begin{tabular}{|l|p{5cm}|p{4.5cm}|p{4.5cm}|}
+			\hline
+			\textbf{Titre} & \textbf{Infrastructures} & \textbf{Mobiliers} & \textbf{ Matériels didactiques}\\
+			\hline
+			Désignation & Salle de cours, Salle d’informatique,
+			Bibliothèque, Espace d’activité Sportive, Salle de chimie, Salle des professeurs, Bloc administratif & Une restauration, l’infirmerie, le foyer Abdoulaye Issa, Obéci & Vidéo projecteur, tableau d’affichage, groupe électrogène\\
+			\hline
+		\end{tabular}
+		\caption{Infrastructures, mobiliers et matériels didactiques de la FAST}
+	\end{table}
+	\section{Présentation du lieu de stage : METEO-BENIN}
+	\subsection{Situation géographique}
+	L’Agence Nationale de la Météorologie (METEO-BENIN) est située à Cotonou, sur la route de l’aéroport, non-loin du carrefour menant au restaurant Makoomba (BP 379).
+	\begin{figure}[h]
+		\centering
+		\includegraphics[width=0.8\textwidth]{Geograph_meteo.png}
+		\caption{Situation géographique de la METEO-BENIN }
+	\end{figure}
+	\subsection{La création et l’évolution}
+	Le service météorologique du Bénin a été créé en 1970 pendant la période coloniale. Il a été géré directement par l’administration coloniale, puis confié à l’Agence pour la Sécurité de la Navigation Aérienne (ASECNA). En janvier 2004, dans le cadre de la restructuration du sous secteur de l’aviation, le gouvernement du Bénin a décidé de créer une Agence Nationale de l’Aviation Civile (ANAC) et une Direction Nationale de la Météorologie (DNM). Ce dernier n’as pas fonctionné jusqu’à nomination du premier DNM en novembre 2010. Ainsi l’Agence Nationale de la Météorologie (Météo Bénin) est créé le 7 septembre 2015 pour remplacer la Direction Nationale de la Météorologie (DNM). Celle-ci devient effectivement opérationnelle le 1er janvier 2016. L’Agence Nationale de la Météorologie (Météo Bénin) a pour mission principale d’observer, d’analyser, d’étudier et de prévoir les conditions météorologiques, climatiques et les composants atmosphériques de l’environnement. Son objectif est d’assurer la sécurité des individus et des biens dans le domaine de la météorologie et de la climatologie. 
+	\begin{figure}[h]
+		\centering
+		\includegraphics[width=0.7\textwidth, height=5cm]{Photo_Meteo.png}
+		\caption{ Une image de la METEO-BENIN }
+	\end{figure}
+	
+	\subsection{Les personnels administratifs de la METEO-BENIN}
+	La METEO-BENIN est composée des personnels administratifs qui sont regroupé dans le tableau suivant :
+	\begin{table}[h]
+		\centering
+		\begin{tabular}{|l|c|}
+			\hline
+			\textbf{Nom et Prénoms} & \textbf{Fonctions}\\
+			\hline
+			Mr. KAKPA Didier & DCAM\\
+			\hline
+			Mr. OUSSOU Dagbénagni Djidjoho Gad &     DSI\\ 
+			\hline
+			Mr. AWLE Comlan Alfred & CAI\\
+			\hline
+			Mr. ANATO Boris & DPROM\\
+			\hline
+			Mr. TCHEHO S. Dieudonné & DPAF\\
+			\hline
+		\end{tabular}
+		\caption{Personnels administratifs de la METEO-BENIN}
+	\end{table}
+	\subsection{Infrastructures et matériels didactiques de la METEO-BENIN}
+	La METEO-BENIN dispose de quelques infrastructures et de matériels didactiques contenus dans le tableau ci-dessous :
+	\begin{table}[h]
+		\centering
+		\begin{tabular}{|l|p{5cm}|p{4.5cm}|}
+			\hline
+			\textbf{Titre} & \textbf{Infrastructures}  & \textbf{Matériels didactiques}\\
+			\hline
+			Désignation & Service informatique, Salle des stagiaires, Salle des serveurs, Bloc administratif & Vidéo projecteur, groupe électrogène\\
+			\hline
+		\end{tabular}
+		\caption{Infrastructures, mobiliers et matériels didactiques de la METEO-BENIN}
+	\end{table}
+	\section{Organisations administratives et pédagogique}
+	L’organigramme de l’entreprise se présente comme suit :  
+	\begin{figure}[h]
+		\centering
+		\includegraphics[width=0.7\textwidth, height=12cm]{organigramme.png}
+		\caption{Organigramme de la METEO-BENIN }
+	\end{figure}
+	\newpage
+	\section{Programmes de stage}
+	Notre stage a débuté le 18 Mai 2026 et a pris fin le 17 juin 2026. Dès le premier jour, nous
+	avons rencontré le personnel administratif de la METEO-BENIN et notre maître stage. Nous avions pris
+	connaissance du contrat de stage de la METEO-BENIN. Nous travaillons des jours réguliers comme
+	suit : lundi au vendredi de 8 h à 12 h 30 mn et de 14 h à 17 h 30 mn . Au cours de notre stage nous avons
+	effectué quelques activités techniques et scientifiques tels que :
+	\begin{enumerate}
+		\item Collecte des données météorologiques 
+		\item Prétraitement des données météorologiques 
+		\item Analyse exploratoire des données météorologiques
+		\item Développement de modèle de prédiction 
+	\end{enumerate}
+	\section{Présentation de Suivi évaluation}
+	Au cours de notre stage nous avons reçu des conseils, des reproches, et des corrections venant de notre maître de stage et des autres membres de l'organisme. En effet, notre maître de stage nous a aidés à nous améliorer dans la rédaction de notre rapport de stage. %A notre disposition, il a été nommé une commission de relecture et de correction qui se chargera de vérifier et corriger nos rapports.
+	\section{Difficultés rencontrées et remédiations apportées aux difficultés}
+	Au cours de notre stage, nous avons rencontré plusieurs difficultés tels que : 
+	\begin{enumerate}
+		\item \textit{Mise en œuvre des modèles de prévision :} Elle a nécessité l'acquisition de nouvelles connaissances en analyse de séries temporelles et en programmation. Plusieurs ajustements et essais ont été effectués avant d'obtenir des résultats satisfaisants.
+		\item \textit{Temps du stage :} Les contraintes de temps liées au stage n'ont pas permis de mener à terme certaines étapes envisagées, notamment l'exploration de modèles de prévision supplémentaires ainsi que le déploiement opérationnel du modèle développé.
+	\end{enumerate}
+	\section{Leçons apprises}
+	Les enseignements tirés de ce programme de stage sont multiples. %L’importance de la formation continue a été particulièrement mise en évidence, les formateurs et les stagiaires ayant constaté qu’elle est essentielle pour s’adapter aux évolutions technologiques et aux nouvelles méthodes de travail. De plus, 
+	La nécessité de l’interaction a été clairement observée, les échanges entre stagiaires et maître de stage ayant été très bénéfiques, soulignant ainsi l’importance de la collaboration dans un environnement professionnel. Enfin, la flexibilité et la capacité d’adaptation ont constitué une leçon essentielle, la nécessité de s’adapter rapidement aux imprévus s’étant imposée comme une compétence indispensable pour l’ensemble des participants.
+	\section{Impressions générales et suggestions}
+	Notre stage académique à la METEO-BENIN a été une expérience extrêmement enrichissante malgré les difficultés rencontrées. Il nous a permis de mieux comprendre les applications concrètes de nos connaissances en probabilités, en statistiques et en informatique, sans oublier celles acquises dans les autres matières étudiées au cours de notre formation. Nous exprimons notre gratitude à la FAST de Natitingou pour son engagement dans l'organisation et le démarrage des stages cette année malgré les contraintes de temps. Cette initiative nous a permis de passer un temps significatif dans un environnement professionnel et d'apprendre les tenants et les aboutissants du monde du travail. Toutefois, nous suggérons d'augmenter la durée des stages afin de permettre une immersion plus approfondie en milieu professionnel. Nous sommes également reconnaissants envers la  METEO-BENIN  pour son accueil chaleureux, le temps qui nous a été consacré et le suivi attentif dont nous avons bénéficié tout au long du stage. Le temps passé aux côtés du Directeur des Systèmes Informatiques nous a permis de grandir professionnellement et de mieux appréhender les réalités du métier, qui exige passion, conscience professionnelle et rigueur. Malgré les difficultés rencontrées, nous avons pu identifier nos faiblesses et trouver des solutions grâce aux précieux conseils de nos encadreurs.
+	\newline
+	\newline
+	\begin{center}
+		\textbf{{\LARGE Conclusion partielle}}
+	\end{center}
+	
+	En conclusion, le stage effectué à la Météo Bénin a constitué une expérience enrichissante pour l’ensemble des participants. Il nous a permis de renforcer nos connaissances théoriques et de développer des compétences pratiques dans un environnement professionnel réel. On a pu progresser de manière significative grâce aux différentes activités réalisées et à l’encadrement dont on a bénéficié. Dans l’ensemble, cette expérience a été positive et formatrice. Les observations et suggestions formulées seront prises en compte afin d’améliorer davantage la qualité des futurs programmes de stage à la Météo Bénin.
+	
+	
+	\part{Développement du thème}
+	\setcounter{section}{0}
+	% Fusion avec le rapport 
+	
+	\input{mini_rapport_general_avant}
+	
+	\section{Conclusion générale et perspectives}
+	Dans ce projet, nous avons suivi un processus complet de prétraitement, d'analyse exploratoire et de modélisation pour la prévision pluviométrique à partir de données météorologiques. Nous avons commencé par traiter les données brutes, en identifiant et en imputant les valeurs manquantes à l'aide de différentes méthodes. Nous avons ensuite effectué une analyse exploratoire pour comprendre les tendances et les relations entre les variables météorologiques. Enfin, nous avons comparé plusieurs modèles de prévision, notamment ARIMA, SARIMA, SARIMAX, Prophet et XGBoost, pour déterminer lequel était le plus adapté pour la prévision des précipitations à Kandi et à Parakou. Les résultats ont montré que le modèle XGBoost offrait les meilleures performances globales, en particulier pendant les mois de saison pluvieuse. Ce projet a permis d'acquérir une compréhension approfondie du processus de prévision pluviométrique et des techniques de modélisation associées, tout en mettant en évidence l'importance du choix du modèle en fonction des caractéristiques spécifiques des données et des objectifs de prévision. 
+	
+	\subsubsection{Limite du projet}
+	La principale limite de XGBoost est son incapacité à effectuer des prévisions à long terme, dans la mesure où la prédiction de la pluie à une date donnée nécessite les observations des jours précédents. 
+	
+	\subsubsection{Perspectives d’évolution}
+	La performance de XGBoost nous encouragent à explorer d'autres modèles de Machine Learning, tels que LightGBM, CatBoost	Extra Trees, Random Forest etc... pour voir si on peut faire mieux que XGBoost. Mais on peut aussi faire du stacking pour combiner les prévisions de plusieurs modèles afin d'améliorer la précision globale des prévisions. Par exemple, on pourrait combiner les prévisions de Prophet et XGBoost en utilisant une technique de stacking, où les prévisions de chaque modèle sont utilisées comme entrées pour un modèle de méta-apprentissage (par exemple, une régression linéaire) qui apprend à pondérer les prévisions de chaque modèle pour produire une prévision finale plus précise. Mais on peut s'arrêter là pour ce projet en raison des contraintes de temps.
+	\begin{thebibliography}{99}
+		
+		\bibitem{box2015}
+		Box, G. E. P., Jenkins, G. M., Reinsel, G. C. et Ljung, G. M.
+		\textit{Time Series Analysis: Forecasting and Control}.
+		5e édition, Wiley, 2015.
+		
+		\bibitem{hyndman2021}
+		Hyndman, R. J. et Athanasopoulos, G.
+		\textit{Forecasting: Principles and Practice}.
+		3e édition, OTexts, 2021.
+		
+		\bibitem{adf1979}
+		Dickey, D. A. et Fuller, W. A.
+		Distribution of the Estimators for Autoregressive Time Series with a Unit Root.
+		\textit{Journal of the American Statistical Association},
+		74(366), 427--431, 1979.
+		
+		\bibitem{xgboost2016}
+		Chen, T. et Guestrin, C.
+		XGBoost: A Scalable Tree Boosting System.
+		\textit{Proceedings of the 22nd ACM SIGKDD},
+		785--794, 2016.
+		
+		\bibitem{prophet2018}
+		Taylor, S. J. et Letham, B.
+		Forecasting at Scale.
+		\textit{The American Statistician},
+		72(1), 37--45, 2018.
+		
+		\bibitem{python}
+		Python Software Foundation.
+		Python Documentation.
+		\texttt{\textcolor{blue}{https://www.python.org}}
+		
+		\bibitem{pandas}
+		Pandas Development Team.
+		Pandas Documentation.
+		\texttt{\textcolor{blue}{https://pandas.pydata.org}}
+		
+		\bibitem{sklearn}
+		Scikit-Learn Developers.
+		Scikit-Learn Documentation.
+		\texttt{\textcolor{blue}{https://scikit-learn.org}}
+		
+		\bibitem{statsmodels}
+		Statsmodels Developers.
+		Statsmodels Documentation.
+		\texttt{\textcolor{blue}{https://www.statsmodels.org}}
+		
+		\bibitem{xgboostdoc}
+		XGBoost Developers.
+		XGBoost Documentation.
+		\texttt{\textcolor{blue}{https://xgboost.readthedocs.io}}
+		bibitem{box2015}
+		G. E. P. Box, G. M. Jenkins, G. C. Reinsel et G. M. Ljung,
+		\textit{Time Series Analysis: Forecasting and Control},
+		5\ieme{} édition, Hoboken, NJ : Wiley, 2015.
+		
+		\bibitem{hyndman2021}
+		R. J. Hyndman et G. Athanasopoulos,
+		\textit{Forecasting: Principles and Practice},
+		3\ieme{} édition, Melbourne, Australie : OTexts, 2021.
+		Disponible sur :
+		\texttt{\textcolor{blue}{https://otexts.com/fpp3/}}
+		
+		\bibitem{xgboost2016}
+		T. Chen et C. Guestrin,
+		« XGBoost: A Scalable Tree Boosting System »,
+		dans \textit{Proceedings of the 22nd ACM SIGKDD International Conference on Knowledge Discovery and Data Mining},
+		San Francisco, Californie, 2016, pp. 785--794.
+	\end{thebibliography}
+	\clearpage
+	\markboth{ANNEXE}{ANNEXE}
+	\section{ANNEXE}	
+	\subsection*{ Quelques codes Python}
+	\begin{lstlisting}[language=Python,basicstyle=\tiny\ttfamily,numbers=left,numbersep=-6pt,keywordstyle=\color{red}\bfseries,commentstyle=\color{gray},stringstyle=\color{blue},breaklines=true,frame=single,backgroundcolor=\color{gray!10},keepspaces=true,tabsize=2]
+		def verif(data_verif):
+		if 0<len(data_verif):
+		return data_verif.iloc[0]
+		else:
+		return np.nan
+		
+		def verif_temp(data_verif_temp):
+		if 2<=len(data_verif_temp):
+		return [data_verif_temp.iloc[0],data_verif_temp.iloc[1]]
+		elif len(data_verif_temp)==1:
+		return [data_verif_temp.iloc[0],data_verif_temp.iloc[0]]
+		else:
+		return[np.nan,np.nan]
+		
+		def creation(data_ge,lieu):
+		list_pression=[]
+		list_pluvimetrie=[]
+		list_temperature_max=[]
+		list_temperature_min=[]
+		list_humidite=[]
+		list_vitesse_vent=[]
+		
+		data_gene=data_ge.copy()
+		for i in data_gene.index:
+		Annee=data_gene.iloc[i]["annee"]
+		Mois=data_gene.iloc[i]["mois"]
+		Jour=data_gene.iloc[i]["jour"]
+		
+		data_virt=data[(data.Name==lieu) & 	(data.Year==Annee) & (data.Month==Mois)]
+		
+		list_pression.append(verif(data_virt[data_virt.Description=="hPa"][f"{Jour}"]))
+		
+		list_temperature_max.append(verif_temp(data_virt[data_virt.Description=='C'][f"{Jour}"])[0])
+		
+		list_temperature_min.append(verif_temp(data_virt[data_virt.Description=='C'][f"{Jour}"])[1])
+		
+		list_humidite.append(verif(data_virt[data_virt.Description=='%'][f"{Jour}"]))
+		
+		list_vitesse_vent.append(verif(data_virt[data_virt.Description=='m/s'][f"{Jour}"]))
+		
+		list_pluvimetrie.append(verif(data_virt[data_virt.Description=="mm"][f"{Jour}"]))
+		
+		data_gene["Pression"]=list_pression
+		
+		data_gene["Temperature_Max"]=list_temperature_max
+		
+		data_gene["Temperature_Min"]=list_temperature_min
+		
+		data_gene["Humidite"]=list_humidite
+		
+		data_gene["Vitesse_Vent"]=list_vitesse_vent
+		
+		data_gene["Pluviometrie"]=list_pluvimetrie
+		
+		return data_gene
+		
+		data_Kandi=creation(data_Kandi,"KANDI_AEROPORT")
+		
+		data_parakou=creation(data_parakou,"PARAKOU_AEROPORT")
+		
+		data_Kandi.to_csv("data/KANDI.csv",index=False)
+		
+		data_parakou.to_csv("data/PARAKOU.csv",index=False)
+		
+		# =========================================================
+		# Methode historique avec moyenne
+		# =========================================================
+		
+		def methode_impute_moy(data_inpute,liste_variable_marquante):
+		
+		donnee = data_inpute.copy()
+		
+		for variable in liste_variable_marquante:
+		
+		donnee_marquante = donnee[donnee[variable].isnull()]
+		
+		for i in donnee_marquante.index:
+		
+		annee = donnee.loc[i, "annee"]
+		mois = donnee.loc[i, "mois"]
+		jour = donnee.loc[i, "jour"]
+		
+		donnee_utilise = donnee[
+		(donnee["annee"] < annee) &
+		(donnee["mois"] == mois) &
+		(donnee["jour"] == jour)
+		]
+		
+		valeur = donnee_utilise[variable].mean()
+		
+		if not pd.isna(valeur):
+		
+		donnee.loc[i, variable] = valeur
+		
+		else:
+		
+		donnee.loc[i, variable] =donnee[variable].median()
+		
+		return donnee
+		
+		# =========================================================
+		# Methode historique avec mediane
+		# =========================================================
+		
+		def methode_impute_medi(data_inpute, liste_variable_marquante):
+		
+		donnee = data_inpute.copy()
+		
+		for variable in liste_variable_marquante:
+		
+		donnee_marquante = donnee[donnee[variable].isnull()]
+		
+		for i in donnee_marquante.index:
+		
+		annee = donnee.loc[i, "annee"]
+		mois = donnee.loc[i, "mois"]
+		jour = donnee.loc[i, "jour"]
+		
+		donnee_utilise = donnee[
+		(donnee["annee"] < annee) &
+		(donnee["mois"] == mois) &
+		(donnee["jour"] == jour)
+		]
+		
+		valeur = donnee_utilise[variable].median()
+		
+		if not pd.isna(valeur):
+		
+		donnee.loc[i, variable] = valeur
+		
+		else:
+		
+		donnee.loc[i, variable] = donnee[variable].median()
+		
+		return donnee
+		
+		
+		# =========================================================
+		# Moyenne globale
+		# =========================================================
+		
+		def methode_moy_glob(data_inpute, liste_variable_marquante):
+		
+		donnee = data_inpute.copy()
+		
+		for variable in liste_variable_marquante:
+		
+		donnee[variable] = donnee[variable].fillna(
+		donnee[variable].mean()
+		)
+		
+		return donnee
+		
+		
+		# =========================================================
+		# Mediane globale
+		# =========================================================
+		
+		def methode_med_glob(data_inpute, liste_variable_marquante):
+		
+		donnee = data_inpute.copy()
+		
+		for variable in liste_variable_marquante:
+		
+		donnee[variable] = donnee[variable].fillna(
+		donnee[variable].median()
+		)
+		
+		return donnee
+		
+		
+		# =========================================================
+		# Interpolation lineaire
+		# =========================================================
+		
+		def methode_interpo(data_inpute, liste_variable_marquante):
+		
+		donnee = data_inpute.copy()
+		
+		for variable in liste_variable_marquante:
+		
+		donnee[variable] = (
+		donnee[variable]
+		.interpolate(
+		method="linear",
+		limit_direction="both"
+		)
+		)
+		
+		return donnee
+		
+		
+		# =========================================================
+		# Fonction de comparaison des methodes
+		# =========================================================
+		
+		def calcul_erreur(data_prepar, liste_variable_marquan):
+		
+		# reproductibilite
+		np.random.seed(42)
+		
+		# copie des donnees
+		donnee = data_prepar.copy()
+		
+		# suppression des NaN reels
+		donnee = donnee.dropna(subset=liste_variable_marquan)
+		
+		# dictionnaire final
+		dict_MAE_RMSE = {}
+		
+		# =====================================================
+		# comparaison variable par variable
+		# =====================================================
+		
+		for variable in liste_variable_marquan:
+		
+		# copie propre
+		donnee_test = donnee.copy()
+		
+		# selection aleatoire des indices
+		indices = np.random.choice(donnee_test.index,100,replace=False)
+		
+		# sauvegarde des vraies valeurs
+		vraie_valeur = donnee_test.loc[indices,variable]
+		
+		# creation artificielle des NaN
+		donnee_test.loc[indices,variable] = np.nan
+		
+		# =================================================
+		# application des methodes
+		# =================================================
+		
+		donnee_methode_impute_moy = (methode_impute_moy(
+		donnee_test,[variable]))
+		
+		donnee_methode_impute_medi = (methode_impute_medi(donnee_test,[variable]))
+		
+		donnee_methode_interpo = (methode_interpo(donnee_test,[variable]))
+		
+		donnee_methode_moy_glob = (methode_moy_glob(donnee_test,[variable]))
+		
+		donnee_methode_med_glob = (methode_med_glob(donnee_test,[variable]))
+		
+		# =================================================
+		# recuperation des predictions
+		# =================================================
+		
+		pred_moy = (donnee_methode_impute_moy.loc[indices, variable])
+		
+		pred_medi = (donnee_methode_impute_medi.loc[indices,variable])
+		
+		pred_interpo = (donnee_methode_interpo.loc[indices, variable])
+		
+		pred_moy_glob = (donnee_methode_moy_glob.loc[indices, variable])
+		
+		pred_med_glob = (donnee_methode_med_glob.loc[indices, variable])
+		
+		# =================================================
+		# calcul MAE et RMSE
+		# =================================================
+		
+		dict_MAE_RMSE[variable] = {
+			
+			"Methode_impute_moy":[mean_absolute_error(vraie_valeur,pred_moy),np.sqrt(mean_squared_error(vraie_valeur,pred_moy))],
+			
+			"Methode_impute_medi":[mean_absolute_error(vraie_valeur,pred_medi),np.sqrt(mean_squared_error(vraie_valeur,pred_medi))],
+			
+			"Methode_interpo":[mean_absolute_error(vraie_valeur,pred_interpo),np.sqrt(mean_squared_error(vraie_valeur,pred_interpo))],
+			
+			"Methode_moy_glob":[mean_absolute_error(vraie_valeur,pred_moy_glob),np.sqrt(mean_squared_error(vraie_valeur,pred_moy_glob))],
+			
+			"Methode_med_glob": [mean_absolute_error(vraie_valeur,pred_med_glob),np.sqrt(mean_squared_error(vraie_valeur,pred_med_glob))]
+		}
+		
+		return dict_MAE_RMSE
+		
+		
+		# =========================================================
+		# Variables manquantes
+		# =========================================================
+		
+		liste_variable_marquante_Kandi=["Pression","Humidite","Vitesse_Vent"]
+		
+		liste_variable_marquante_Parakou=["Pression","Temperature_Max","Humidite"]
+		
+		# =========================================================
+		# Calcul des erreurs
+		# =========================================================
+		
+		dict_Kandi = calcul_erreur(Kandi,
+		liste_variable_marquante_Kandi
+		)
+		
+		dict_Parakou = calcul_erreur(Parakou,
+		liste_variable_marquante_Parakou
+		)
+		
+		def transform_dict(dict):
+		# liste vide
+		liste_resultats = []
+		dictio_methode={"Methode_impute_moy": "Moyenne historique","Methode_impute_medi": "Mediane historique",
+			"Methode_interpo":"Interpolation","Methode_moy_glob":"Moyenne globale","Methode_med_glob":"Mediane globale"
+		}
+		# parcours du dictionnaire
+		for variable, methodes in dict.items():
+		for methode, metriques in methodes.items():
+		liste_resultats.append({"Variable": variable,"Methode":dictio_methode[methode],"MAE": metriques[0],"RMSE": metriques[1]})
+		return pd.DataFrame(liste_resultats)
+		
+		df_resultat_Kandi=transform_dict(dict_Kandi)
+		df_resultat_Parakou=transform_dict(dict_Parakou)
+	\end{lstlisting}
+\end{document}
